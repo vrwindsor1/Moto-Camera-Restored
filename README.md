@@ -52,7 +52,7 @@ We automatically track and synchronize our compatibility matrix with the officia
 | **Moto Camera 2** | `com.motorola.camera2` | `v5.x` – `v7.x` *(e.g. 7.2.x)* | Select devices launched in **2016 – 2019** |
 | **Moto Camera 3** | `com.motorola.camera3` | `v7.x` – `v8.x` *(e.g. 8.0.x, 8.1.x)* | Select devices launched in **2020 and beyond** |
 | **Moto Camera 4** | `com.motorola.camera3` | `v9.x` *(e.g. 9.0.x, 9.1.x)* | Select devices launched in **2022 and beyond** |
-| **Moto Camera 5 / Pro** | `com.motorola.camera5`<br>`com.motorola.camerapro`<br>`com.motorola.camera3` | `v1.x` *(Pro/Cam5)* or `v10.x+` | Select devices launched in **2025 and beyond** |
+| **Moto Camera 5** | `com.motorola.camera5`<br>`com.motorola.camera3` | `v1.x` *(Cam5)* or `v10.x+` | Select devices launched in **2025 and beyond** |
 
 > [!TIP]
 > **How to verify your stock camera generation:**  

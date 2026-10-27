@@ -143,13 +143,12 @@ Devices listed here have active LineageOS maintainers and up-to-date trees. Sinc
 
 All packages are compiled into **recovery sideload flashable zips** (`adb sideload`) with **`addon.d` OTA survival**—**no root (Magisk/KernelSU) required**.
 
-| Device Name | Codename | LineageOS Branch | Chipset / SoC | Stock Camera Era | Recommended Recovery Suite | Maintainers |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Device Name | Codename | LineageOS Branch | Stock Camera Era |
+| :--- | :--- | :--- | :--- |
 """
 
     for d in active_devices:
-        maintainer_str = ", ".join(d['maintainers']) if d['maintainers'] else "None"
-        content += f"| **{d['name']}** | `{d['codename']}` | {d['branch']} | {d['soc']} | {d['native_cam']} | `{d['recommended_suite']}` | {maintainer_str} |\n"
+        content += f"| **{d['name']}** | `{d['codename']}` | {d['branch']} | {d['native_cam']} |\n"
 
     content += f"""
 ---
@@ -161,12 +160,12 @@ These devices previously received official LineageOS builds but are no longer ac
 <details>
 <summary>Click to expand legacy devices list</summary>
 
-| Device Name | Codename | Last Branch | Chipset / SoC | Stock Camera Era |
-| :--- | :--- | :--- | :--- | :--- |
+| Device Name | Codename | Last Branch | Stock Camera Era |
+| :--- | :--- | :--- | :--- |
 """
 
     for d in legacy_devices:
-        content += f"| {d['name']} | `{d['codename']}` | {d['branch']} | {d['soc']} | {d['native_cam']} |\n"
+        content += f"| {d['name']} | `{d['codename']}` | {d['branch']} | {d['native_cam']} |\n"
 
     content += """
 </details>
