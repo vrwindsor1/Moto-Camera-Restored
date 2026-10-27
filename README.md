@@ -94,14 +94,34 @@ Ensure dynamic partition and filesystem extraction tools are installed:
 
 ---
 
-### 2. Clone the Repository
+### 2. Get the Compiler
 
-Clone this repository to your computer and navigate into the project directory:
+Choose either **Option A** (clone full repository) or **Option B** (download standalone script for your OS):
 
+#### Option A: Clone the Repository (Recommended)
+Clones the complete repository with all template scaffolding included:
 ```bash
 git clone https://github.com/vrwindsor1/Moto-Camera-Restored.git
 cd Moto-Camera-Restored
 ```
+
+#### Option B: Standalone Script Download
+If you prefer not to clone the full repository, you can download just the compiler script for your operating system:
+
+* **Linux:**
+  ```bash
+  curl -sSLO https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_linux.sh
+  chmod +x compile_recovery_package_linux.sh
+  ```
+* **Windows (PowerShell & Batch):**
+  Download [`compile_recovery_package_windows.bat`](https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_windows.bat) and [`compile_recovery_package_windows.ps1`](https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_windows.ps1) into the same directory:
+  ```powershell
+  Invoke-WebRequest -Uri "https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_windows.ps1" -OutFile "compile_recovery_package_windows.ps1"
+  Invoke-WebRequest -Uri "https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_windows.bat" -OutFile "compile_recovery_package_windows.bat"
+  ```
+
+> [!NOTE]
+> When using the standalone script, the compiler will detect that local templates are missing and will prompt you to press `[Enter]` to automatically download the matching recovery template module directly from GitHub.
 
 ---
 
