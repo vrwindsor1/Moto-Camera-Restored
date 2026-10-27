@@ -1,23 +1,39 @@
 # Moto Camera Restored
 
-[![LineageOS Device Sync](https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml/badge.svg)](https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml)
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Platform: Magisk / KernelSU / APatch](https://img.shields.io/badge/Root-Magisk%20%7C%20KernelSU%20%7C%20APatch-orange.svg)](#installation)
+<p align="center">
+  <a href="https://deepmind.google"><img src="https://img.shields.io/badge/Pair%20Programmed%20With-Google%20DeepMind%20Antigravity-blueviolet?style=flat-square&logo=google" alt="Pair Programmed With Google DeepMind Antigravity"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square" alt="License"></a>
+  <a href="#flash-via-recovery-sideload"><img src="https://img.shields.io/badge/Method-Recovery%20Sideload%20(No%20Root)-success.svg?style=flat-square" alt="Recovery Sideload"></a>
+  <a href="#ota-survival-addond"><img src="https://img.shields.io/badge/OTA-addon.d%20Survival-orange.svg?style=flat-square" alt="addon.d Survival"></a>
+  <a href="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml"><img src="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml/badge.svg?style=flat-square" alt="LineageOS Device Sync"></a>
+</p>
 
-> **Bringing native Motorola Camera features, auxiliary lens support, and proprietary image tuning back to LineageOS and custom ROMs.**
+An all-in-one universal recovery package compiler that extracts Motorola Camera suites (**Moto Camera 3, 4, and 5**), companion AI services, vendor hardware abstraction layers (HALs), and multi-camera tuning libraries directly from official Motorola stock firmware and packages them into **flashable zip packages for recovery sideload** on custom ROMs (Android 13+).
+
+> [!IMPORTANT]
+> **100% Rootless — Recovery Sideload Only**:  
+> This project does **NOT** use Magisk, KernelSU, or APatch. Camera packages are compiled into recovery-flashable zips installed via `adb sideload` in **Lineage Recovery, TWRP, or OrangeFox**. The camera stack integrates directly into the ROM partition structure.
+
+> [!NOTE]
+> **No Proprietary Files Hosted**:  
+> This repository contains **no copyrighted binaries, proprietary firmware blobs, or Motorola APKs**. All device-specific camera packages and HAL services are dynamically harvested on your local machine directly from official Motorola stock firmware provided by the user.
+
+> [!TIP]
+> **OTA Survival (`addon.d`) Included**:  
+> All generated recovery packages include an `addon.d` survival script. Camera apps, services, and libraries survive custom ROM OTA updates without needing to be re-flashed.
 
 ---
 
 ## 🎯 Purpose & Mission
 
-When you unlock your bootloader and flash an AOSP-based custom ROM (such as **LineageOS**, **crDroid**, **PixelOS**, or **Evolution X**) on a Motorola device, you gain speed and Android updates—but you lose Motorola's proprietary camera pipeline.
+When you unlock your bootloader and flash an AOSP-based custom ROM (such as **LineageOS**, **crDroid**, **PixelOS**, or **Evolution X**) on a Motorola device, you gain speed, cleaner software, and newer Android versions—but you lose Motorola's proprietary camera pipeline.
 
-Standard AOSP camera apps (like LineageOS *Aperture*) often cannot take full advantage of:
+Standard AOSP camera apps (like LineageOS *Aperture*) frequently cannot take full advantage of:
 * **Auxiliary lenses:** Ultrawide, macro, telephoto, and depth sensors.
-* **Proprietary imaging algorithms:** Moto Night Vision, Spot Color, Cinemagraph, and Moto AI enhancements.
+* **Proprietary imaging algorithms:** Moto Night Vision, Spot Color, Cinemagraph, and Moto AI photo enhancements.
 * **Device-specific tuning:** Correct ISP configurations, exposure calibration, and dual-camera stereoscopic depth maps.
 
-**Moto Camera Restored** bridges this gap by porting, debloating, and adapting the native Motorola Camera suites (**Moto Camera 3, 4, and 5**) to run seamlessly on modern custom ROM builds.
+**Moto Camera Restored** unites the tooling for **MotCamera 3**, **MotCamera 4**, and **MotCamera 5** into a single toolkit. It allows you to feed in your device's stock firmware and automatically generate a tailored recovery package that restores native camera performance.
 
 ---
 
@@ -27,7 +43,7 @@ This project is **not** exclusive to LineageOS. However, we specifically target 
 
 > **Nearly every active custom ROM in the Motorola community forks or inherits its device tree, kernel, and vendor HALs directly from LineageOS.**
 
-Whether you run **LineageOS**, **crDroid**, **PixelOS**, **DerpFest**, or **Havoc**, they almost universally rely on the same upstream LineageOS hardware abstraction layer. If a device has an actively maintained LineageOS tree, it has the hardware foundation required for **Moto Camera Restored** to function properly.
+Whether you run **LineageOS**, **crDroid**, **PixelOS**, **DerpFest**, or **Havoc**, they almost universally rely on the same upstream LineageOS hardware abstraction layer. If a device has an actively maintained LineageOS tree, it provides the clean, standard hardware foundation required for the restored camera stack to function properly.
 
 ---
 
@@ -39,27 +55,86 @@ We automatically track and synchronize our compatibility matrix with the officia
 
 ### Supported Generations Overview
 
-| Camera Generation | Original Target Era | Target Devices Example | Recommended Suite |
+| Camera Generation | Original Stock Era | Example Target Devices | Target Recovery Package |
 | :--- | :--- | :--- | :--- |
-| **Moto Camera 2** | Snapdragon 630 / 632 / 636 / 835 (Android 7–9) | `payton` (Moto X4), `lake` (G7 Plus), `river` (G7), `nash` (Z2 Force) | **MotCamera 3 Suite / 4 Suite** |
-| **Moto Camera 3** | Snapdragon 662 / 750G / 765G / 870 (Android 10–11) | `nio` (Moto G100), `kiev` (Moto G 5G), `guamp` (G9 Play) | **MotCamera 3 Suite / 4 Suite** |
-| **Moto Camera 4** | Snapdragon 695 / 680 / 778G / 888+ (Android 12–13) | `dubai` (Edge 30), `miami` (Edge 30 Neo), `rhode` (G52) | **MotCamera 4 Suite / 5 Suite** |
-| **Moto Camera 5** | Snapdragon 8 Gen 2 / 8+ Gen 1 / 6 Gen 1 (Android 14+) | `rtwo` (Edge 40 Pro / Edge+ 2023), `genevn` (G Stylus 5G 2023) | **MotCamera 5 Suite** |
+| **Moto Camera 2** | Snapdragon 630 / 632 / 636 / 835 (Android 7–9) | `payton` (Moto X4), `lake` (G7 Plus), `river` (G7), `nash` (Z2 Force) | **MotCamera 3 Recovery Suite / 4 Recovery Suite** |
+| **Moto Camera 3** | Snapdragon 662 / 750G / 765G / 870 (Android 10–11) | `nio` (Moto G100), `kiev` (Moto G 5G), `guamp` (G9 Play) | **MotCamera 3 Recovery Suite / 4 Recovery Suite** |
+| **Moto Camera 4** | Snapdragon 695 / 680 / 778G / 888+ (Android 12–13) | `dubai` (Edge 30), `miami` (Edge 30 Neo), `rhode` (G52) | **MotCamera 4 Recovery Suite / 5 Recovery Suite** |
+| **Moto Camera 5** | Snapdragon 8 Gen 2 / 8+ Gen 1 / 6 Gen 1 (Android 14+) | `rtwo` (Edge 40 Pro / Edge+ 2023), `genevn` (G Stylus 5G 2023) | **MotCamera 5 Recovery Suite** |
 
 ---
 
-## 🛠️ Installation
+## 🛠️ Installation & Usage Guide
 
-### Prerequisites
-* Root access via **Magisk (v24.0+)**, **KernelSU (v0.6.0+)**, or **APatch**.
-* A Motorola device running an Android 12, 13, 14, or 15 custom ROM based on LineageOS device trees.
+### 1. Prerequisites
+- **Official Motorola Stock Firmware** for your device (downloaded via Motorola Rescue and Smart Assistant / RSA, mirrors.lolinet.com, or official firmware dumps). The compiler accepts:
+  - A directory containing `super.img_sparsechunk.*`
+  - A stock firmware `.zip` archive
+  - Extracted partition images (`product.img`, `system_ext.img`, etc.)
+  - A pre-extracted folder structure (`product/`, `system_ext/`, etc.)
+- A computer running **Linux** or **Windows**.
+- A custom recovery installed on your phone (**Lineage Recovery**, **TWRP**, or **OrangeFox**).
 
-### Steps
-1. Navigate to the **[Releases](../../releases)** section.
-2. Download the installer zip appropriate for your device generation (or the unified installer package).
-3. Flash the zip in **Magisk Manager**, **KernelSU Manager**, or **APatch**.
-4. Reboot your device.
-5. Grant all requested camera, storage, and location permissions on first launch.
+#### Host System Dependencies (Linux)
+Ensure dynamic partition and filesystem extraction tools are installed:
+
+| Distribution | Command |
+| :--- | :--- |
+| **Fedora / RHEL** | `sudo dnf install android-tools erofs-utils zip curl python3` |
+| **Ubuntu / Debian** | `sudo apt install android-sdk-libsparse-utils erofs-utils zip curl python3` |
+| **Arch Linux** | `sudo pacman -S android-tools erofs-utils zip curl python` |
+
+---
+
+### 2. Build the Recovery Package
+
+#### Linux
+```bash
+chmod +x compile_recovery_package_linux.sh
+
+# Interactive mode (prompts for firmware path):
+./compile_recovery_package_linux.sh
+
+# CLI mode:
+./compile_recovery_package_linux.sh "/path/to/stock_firmware"
+```
+
+#### Windows
+* **PowerShell:**
+  ```powershell
+  .\compile_recovery_package_windows.ps1 -FirmwarePath "C:\path\to\stock_firmware"
+  ```
+* **Batch:**
+  Double-click `compile_recovery_package_windows.bat` and follow the prompts.
+
+The compiled package will be placed in the `output/` directory:
+```text
+output/MotoCameraRestored_<device>_Recovery_Installer.zip
+```
+
+---
+
+### 3. Flash via Recovery Sideload
+1. Reboot your Motorola device into **Recovery Mode** (Lineage Recovery, TWRP, or OrangeFox).
+2. Put the device into sideload mode:
+   * **Lineage Recovery:** Select **Apply Update** $\rightarrow$ **Apply from ADB**.
+   * **TWRP / OrangeFox:** Select **Advanced** $\rightarrow$ **ADB Sideload** (swipe to confirm).
+3. Connect the device to your PC via USB and execute:
+   ```bash
+   adb sideload output/MotoCameraRestored_<device>_Recovery_Installer.zip
+   ```
+4. If Lineage Recovery prompts about signature verification failing, choose **Install anyway** (expected for custom packages).
+5. Once sideloading completes successfully, select **Reboot system now**.
+
+---
+
+## 🔄 OTA Survival (`addon.d`)
+
+The generated recovery package places an `addon.d` survival script in `/system/addon.d/` (or `/system_ext/addon.d/`). When you update your LineageOS or custom ROM build:
+1. The ROM updater backs up all restored camera apps, permissions, and HAL libraries.
+2. The ROM update is applied.
+3. The `addon.d` script automatically restores the camera files before rebooting.
+4. **No re-flashing required after ROM OTAs.**
 
 ---
 
@@ -76,13 +151,13 @@ This repository includes a dedicated GitHub Action ([`.github/workflows/update-d
 ## 🤝 Contributing
 
 Contributions, device bug reports, and pull requests are welcome!
-* If a specific camera feature or auxiliary lens fails on your device, please open an **Issue** with logcat output (`adb logcat -s MotoCamera:V CameraManager:V`).
+* If a specific auxiliary lens or camera mode fails on your device, please open an **Issue** with logcat output (`adb logcat -s MotoCamera:V CameraManager:V`).
 * If you have tested a combination on a device listed in [COMPATIBILITY.md](COMPATIBILITY.md), feel free to submit a PR updating test notes.
 
 ---
 
 ## 📄 License & Disclaimer
 
-* Custom porting scripts and installer assets are licensed under **GPL-3.0**.
-* Motorola, Moto, and related trademarks are the intellectual property of **Motorola Mobility LLC / Lenovo**.
-* This is an independent open-source community mod and is not affiliated with or endorsed by Motorola Mobility or the LineageOS Project.
+- The compiler, packaging scripts, and template assets are released under the **[Apache License 2.0](LICENSE)**.
+- **Motorola**, **Moto**, and associated logos are trademarks of **Motorola Mobility LLC / Lenovo**.
+- This is an independent, non-commercial open-source community project and is not affiliated with or endorsed by Motorola Mobility LLC or the LineageOS Project.
