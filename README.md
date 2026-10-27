@@ -194,11 +194,21 @@ The generated recovery package places an `addon.d` survival script in `/system/a
 
 ## 🤖 Automated Upstream Tracking
 
-This repository includes a dedicated GitHub Action ([`.github/workflows/update-devices.yml`](.github/workflows/update-devices.yml)) that:
-1. Automatically monitors the [`LineageOS/lineage_wiki`](https://github.com/LineageOS/lineage_wiki) repository weekly.
-2. Extracts metadata for all 90+ Motorola devices in the LineageOS ecosystem.
-3. Detects active maintainers, branch updates, and chipset configurations.
-4. Automatically regenerates and commits changes to the [Per-Device Compatibility Table](COMPATIBILITY.md).
+This repository includes an automated upstream tracking pipeline powered by GitHub Actions ([`.github/workflows/update-devices.yml`](.github/workflows/update-devices.yml)) and [`scripts/update_compatibility.py`](scripts/update_compatibility.py) that runs weekly to monitor the Motorola custom ROM ecosystem:
+
+1. **LineageOS Wiki Synchronization:** Clones and parses the official [`LineageOS/lineage_wiki`](https://github.com/LineageOS/lineage_wiki) device dataset (`_data/devices/*.yml`) for all Motorola devices.
+2. **Hardware & Variant Metadata Extraction:**
+   * **Marketing Names & Codenames:** Catalogs all 90+ Motorola devices across the ecosystem.
+   * **Sub-model & Regional Variants:** Tracks hardware model numbers (e.g., `XT2315-1`, `XT2315-4`, `XT2315-5`).
+   * **SoC & Platform Architectures:** Identifies chipsets (Snapdragon, MediaTek Dimensity, Exynos, Unisoc).
+3. **Upstream Maintenance & Branch Status:**
+   * Distinguishes **Actively Maintained** devices (with assigned upstream maintainers) from **Legacy / Discontinued** devices.
+   * Tracks current and latest official LineageOS Android release branches (e.g., `24.0`, `23.0`, `22.1`, `21.0`).
+4. **Camera Era Classification:** Automatically maps hardware launch timelines and SoC platforms to their native stock camera generation (**Moto Camera 2**, **3**, **4**, or **5**).
+5. **Community Report Ingestion & Sync:**
+   * Aggregates verification test outcomes from [`reports/`](reports/) (`Works Perfectly`, `Mostly Working`, `App Crashes`, `Untested`).
+   * Automatically updates and regenerates the [Per-Device Compatibility Table](COMPATIBILITY.md).
+   * Synchronizes device selection dropdowns in the [Compatibility Report Issue Form](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=compatibility_report.yml).
 
 ---
 
