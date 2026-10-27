@@ -20,6 +20,7 @@ When you unlock your bootloader and flash an AOSP-based custom ROM (such as **Li
 
 Standard AOSP camera apps (like LineageOS *Aperture*) frequently cannot take full advantage of:
 * **Auxiliary lenses:** Ultrawide, macro, telephoto, and depth sensors.
+* **Ultra-Res mode:** Full-sensor high-resolution capture (e.g., 50MP, 64MP, 108MP, or 200MP Quad/Nonacell pixel binning bypass).
 * **Proprietary imaging algorithms:** Moto Night Vision, Spot Color, Cinemagraph, and Moto AI photo enhancements.
 * **Device-specific tuning:** Correct ISP configurations, exposure calibration, and dual-camera stereoscopic depth maps.
 
