@@ -11,9 +11,10 @@ permissions:
 
 jobs:
   import-report:
-    # Trigger if title starts with [Compatibility], body contains report headers, or has compatibility/import-report label
+    # Trigger if title starts with [Compatibility] or instruction prefix, body contains report headers, or has compatibility/import-report label
     if: >-
       startsWith(github.event.issue.title, '[Compatibility]') ||
+      startsWith(github.event.issue.title, 'Please DO NOT edit the title') ||
       contains(github.event.issue.labels.*.name, 'compatibility') ||
       (github.event.action == 'labeled' && (github.event.label.name == 'compatibility' || github.event.label.name == 'import-report')) ||
       (contains(github.event.issue.body, '### Compiler Method') && contains(github.event.issue.body, '### Device'))

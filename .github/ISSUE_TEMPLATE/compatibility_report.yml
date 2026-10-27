@@ -1,6 +1,6 @@
 name: "Device Compatibility Report"
 description: "Report test results for your Motorola device and custom ROM"
-title: "[Compatibility]: "
+title: "Please DO NOT edit the title, it will be auto-propagated upon creation with the device you select in the dropdown below"
 labels: ["compatibility", "triage"]
 body:
   - type: markdown
