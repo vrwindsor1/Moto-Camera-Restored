@@ -81,23 +81,44 @@ We automatically track and synchronize our per-device compatibility table with t
   - A stock firmware `.zip` archive
   - Extracted partition images (`product.img`, `system_ext.img`, etc.)
   - A pre-extracted folder structure (`product/`, `system_ext/`, etc.)
-- A computer running **Linux** or **Windows**.
+- A computer running **Linux** (native or via **Windows Subsystem for Linux / WSL**).
 - A custom recovery installed on your phone (**Lineage Recovery**, **TWRP**, or **OrangeFox**).
 
 #### Host System Dependencies (Linux)
-Ensure dynamic partition and filesystem extraction tools are installed:
+Dynamic partition unsparse (`simg2img`), dynamic super partition extraction (`lpunpack`), and read-only `erofs` filesystem unpackers require native Linux POSIX utilities:
 
 | Distribution | Command |
 | :--- | :--- |
-| **Fedora / RHEL** | `sudo dnf install android-tools erofs-utils zip curl python3` |
-| **Ubuntu / Debian** | `sudo apt install android-sdk-libsparse-utils erofs-utils zip curl python3` |
-| **Arch Linux** | `sudo pacman -S android-tools erofs-utils zip curl python` |
+| **Fedora / RHEL** | `sudo dnf install android-tools erofs-utils zip curl python3 git` |
+| **Ubuntu / Debian** | `sudo apt install android-sdk-libsparse-utils erofs-utils zip curl python3 git` |
+| **Arch Linux** | `sudo pacman -S android-tools erofs-utils zip curl python git` |
+
+#### Windows Users: Windows Subsystem for Linux (WSL)
+Linux is the required operating environment. Windows users can easily run the compiler using **WSL (Ubuntu)**:
+
+1. **Install WSL (if not already installed):**  
+   Open **PowerShell as Administrator** and run:
+   ```powershell
+   wsl --install
+   ```
+   *(Restart your computer if prompted by Windows).*
+
+2. **Install Build Dependencies in WSL:**  
+   Launch **Ubuntu** from your Windows Start Menu and run:
+   ```bash
+   sudo apt update && sudo apt install -y android-sdk-libsparse-utils erofs-utils zip curl python3 git
+   ```
+
+3. **Access Windows Files from WSL:**  
+   Your Windows drives are automatically accessible inside WSL under `/mnt/c/`. For example:
+   * Windows User Directory: `/mnt/c/Users/<YourUsername>/`
+   * Windows Downloads Folder: `/mnt/c/Users/<YourUsername>/Downloads/`
 
 ---
 
 ### 2. Get the Compiler
 
-Choose either **Option A** (clone full repository) or **Option B** (download standalone script for your OS):
+Choose either **Option A** (clone full repository) or **Option B** (download standalone script):
 
 #### Option A: Clone the Repository (Recommended)
 Clones the complete repository with all template scaffolding included:
@@ -107,17 +128,11 @@ cd Moto-Camera-Restored
 ```
 
 #### Option B: Standalone Script Download
-If you prefer not to clone the full repository, you can download just the compiler script for your operating system:
-
-* **Linux:**
-  ```bash
-  curl -sSLO https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_linux.sh
-  chmod +x compile_recovery_package_linux.sh
-  ```
-* **Windows (PowerShell):**
-  ```powershell
-  Invoke-WebRequest -Uri "https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_windows.ps1" -OutFile "compile_recovery_package_windows.ps1"
-  ```
+If you prefer not to clone the full repository, you can download just the compiler script:
+```bash
+curl -sSLO https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_linux.sh
+chmod +x compile_recovery_package_linux.sh
+```
 
 > [!NOTE]
 > When using the standalone script, the compiler will detect that local templates are missing and will prompt you to press `[Enter]` to automatically download the matching recovery template module directly from GitHub.
@@ -140,7 +155,7 @@ The compiler extracts your stock firmware, profiles your device hardware and And
   * **Press `[Enter]`:** Automatically downloads the required recovery template module from GitHub and saves it into `./templates/<camera_gen>/` with proper POSIX executable permissions (`toybox`, `update-binary`), caching it for future builds.
   * **Enter a Local Path:** Point to an existing directory on disk containing your templates (such as an existing repository clone or template folder).
 
-#### Linux
+#### Run the Compiler
 ```bash
 chmod +x compile_recovery_package_linux.sh
 
@@ -151,14 +166,9 @@ chmod +x compile_recovery_package_linux.sh
 ./compile_recovery_package_linux.sh "/path/to/stock_firmware" [output_dir] [template_dir]
 ```
 
-#### Windows (PowerShell)
-```powershell
-# Interactive mode (prompts for firmware path and template resolution):
-.\compile_recovery_package_windows.ps1
-
-# CLI mode:
-.\compile_recovery_package_windows.ps1 -FirmwarePath "C:\path\to\stock_firmware" [-OutputDir "C:\output"] [-TemplateDir "C:\templates"]
-```
+> [!TIP]
+> **WSL Tip:** If your stock firmware folder or zip is located in your Windows Downloads folder, specify the path as:  
+> `./compile_recovery_package_linux.sh "/mnt/c/Users/<YourUsername>/Downloads/my_stock_firmware"`
 
 The compiled package and build manifest will be placed in the `output/` directory:
 ```text

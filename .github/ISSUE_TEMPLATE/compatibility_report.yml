@@ -16,10 +16,10 @@ body:
     id: compiler_method
     attributes:
       label: Compiler Method
-      description: Which script did you use to generate the flashable zip?
+      description: Which environment did you use to run the compiler?
       options:
-        - ".sh (Linux Shell Script)"
-        - ".ps1 (Windows PowerShell Script)"
+        - ".sh (Linux Native)"
+        - ".sh (Windows WSL)"
     validations:
       required: true
 

@@ -11,10 +11,10 @@ body:
   - type: dropdown
     id: compiler_script
     attributes:
-      label: Operating System & Script Used
+      label: Operating System / Environment
       options:
-        - "Linux (compile_recovery_package_linux.sh)"
-        - "Windows PowerShell (compile_recovery_package_windows.ps1)"
+        - "Linux Native (compile_recovery_package_linux.sh)"
+        - "Windows WSL (compile_recovery_package_linux.sh)"
     validations:
       required: true
 
