@@ -196,7 +196,7 @@ output/MotoCameraRestored_<device>_info.txt
 
 The generated recovery package places an `addon.d` survival script in `/system/addon.d/` (or `/system_ext/addon.d/`):
 * **No re-flashing required after routine ROM OTAs.**
-* **Major OS Revisions:** The package will need to be re-flashed after a major OS revision sideload, and all app settings, permissions, and data will be reset.
+* **Major OS Revisions:** Re-flash the package after a major OS revision sideload prior to first boot (like a GApps package) to preserve your camera settings, permissions, and app data. *(Your photos are always safe in internal storage and won't be affected either way).*
 
 ---
 
