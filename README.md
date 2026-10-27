@@ -3,6 +3,8 @@
 <p align="center">
   <a href="https://deepmind.google"><img src="https://img.shields.io/badge/Pair%20Programmed%20With-Google%20DeepMind%20Antigravity-blueviolet?style=flat-square&logo=google" alt="Pair Programmed With Google DeepMind Antigravity"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square" alt="License"></a>
+  <a href="reports/"><img src="https://img.shields.io/badge/Device-Reports%20Folder-purple?style=flat-square" alt="Device Reports"></a>
+  <a href="https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=compatibility_report.yml"><img src="https://img.shields.io/badge/Submit-Compatibility%20Report-success?style=flat-square&logo=github" alt="Submit Report"></a>
   <a href="#flash-via-recovery-sideload"><img src="https://img.shields.io/badge/Method-Recovery%20Sideload%20(No%20Root)-success.svg?style=flat-square" alt="Recovery Sideload"></a>
   <a href="#ota-survival-addond"><img src="https://img.shields.io/badge/OTA-addon.d%20Survival-orange.svg?style=flat-square" alt="addon.d Survival"></a>
   <a href="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml"><img src="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml/badge.svg?style=flat-square" alt="LineageOS Device Sync"></a>

@@ -2,12 +2,13 @@
 """
 update_compatibility.py
 Automatically parses the LineageOS Wiki dataset to extract all Motorola devices,
-identifies active maintainer status, infers native camera generations, and
-generates a comprehensive COMPATIBILITY.md matrix.
+identifies active maintainer status, infers native camera generations, checks
+community test reports in reports/, and generates a comprehensive COMPATIBILITY.md matrix.
 """
 
 import os
 import sys
+import re
 import argparse
 from datetime import datetime, timezone
 import yaml
@@ -89,16 +90,90 @@ def parse_lineage_devices(devices_dir):
             'maintainers': maintainers,
             'is_active': is_active,
             'native_cam': native_cam,
-            'models': models
+            'models': models if isinstance(models, list) else ([models] if models else [])
         })
 
     return devices
 
-def generate_markdown(devices, output_file):
+def get_device_status(codename, reports_dir="reports"):
+    report_file = os.path.join(reports_dir, f"{codename}.md")
+    if os.path.exists(report_file):
+        try:
+            with open(report_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            m = re.search(r"-\s+\*\*Current Overall Status:\*\*\s*(.+)", content)
+            if m:
+                raw_status = m.group(1).strip()
+                clean_status = raw_status.replace("**", "").strip()
+                return clean_status
+        except Exception:
+            pass
+    return "❔ Untested"
+
+def ensure_device_report_files(devices, reports_dir="reports"):
+    os.makedirs(reports_dir, exist_ok=True)
+
+    # Group devices by codename
+    by_codename = {}
+    for d in devices:
+        c = d['codename']
+        by_codename.setdefault(c, []).append(d)
+
+    for codename, dev_list in by_codename.items():
+        report_file = os.path.join(reports_dir, f"{codename}.md")
+        if os.path.exists(report_file):
+            continue
+
+        names = sorted(list(set(d['name'] for d in dev_list)))
+        combined_names = " / ".join(names)
+        native_cam = dev_list[0]['native_cam']
+
+        all_models = []
+        for d in dev_list:
+            for m in d.get('models', []):
+                if m and str(m) not in all_models:
+                    all_models.append(str(m))
+
+        models_str = ", ".join(f"`{m}`" for m in all_models) if all_models else "—"
+
+        report_content = f"""# Device Report: {combined_names} (`{codename}`)
+
+<p align="center">
+  <a href="../COMPATIBILITY.md"><img src="https://img.shields.io/badge/⬅%20Back%20to-Compatibility%20Matrix-blue?style=flat-square" alt="Compatibility Matrix"></a>
+  <a href="https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=compatibility_report.yml"><img src="https://img.shields.io/badge/Submit-New%20Report-success?style=flat-square&logo=github" alt="Submit Report"></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square" alt="License"></a>
+</p>
+
+## Device Information
+
+- **Marketing Name:** {combined_names}
+- **Codename:** `{codename}`
+- **Model Number(s):** {models_str}
+- **Stock Camera Era:** {native_cam}
+- **Current Overall Status:** ❔ **Untested**
+- **Total Community Reports:** 0
+
+---
+
+## Community Test Reports
+
+| Report | Compiler | Custom ROM | Stock Firmware | Outcome | Tested Features / Notes |
+| :--- | :---: | :--- | :--- | :---: | :--- |
+| *No reports yet* | — | — | — | ❔ Untested | Waiting for community test report |
+
+---
+
+<p align="center">
+  <a href="../COMPATIBILITY.md">⬅ Back to Full Compatibility Matrix</a> &bull; <a href="../README.md">Installer Documentation</a>
+</p>
+"""
+        with open(report_file, 'w', encoding='utf-8') as f:
+            f.write(report_content)
+
+def generate_markdown(devices, output_file, reports_dir="reports"):
     active_devices = [d for d in devices if d['is_active']]
     legacy_devices = [d for d in devices if not d['is_active']]
 
-    # Sort active devices alphabetically by device name
     active_devices.sort(key=lambda x: x['name'].lower())
     legacy_devices.sort(key=lambda x: x['name'].lower())
 
@@ -112,16 +187,42 @@ def generate_markdown(devices, output_file):
 
 ---
 
+## Quick Links
+
+- 🏠 **[Installer Documentation & Source (README)](README.md)**
+- 📂 **[Individual Device Reports Directory (reports/)](reports/)**
+- 📝 **[Submit a Compatibility Report (GitHub Form)](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=compatibility_report.yml)**
+- 🐛 **[Report a Tool Bug / Script Issue](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=bug_report.yml)**
+
+---
+
+## Result Classifications
+
+Every tested device outcome is classified into one of the following categories:
+
+| Status Badge | Result Category | Definition |
+| :---: | :--- | :--- |
+| 🟢 | **`Works Perfectly`** | Full success. Moto Camera launches cleanly; all rear physical sensors (Main, Ultrawide, Macro, Telephoto), front selfie, Ultra-Res (high-resolution photo mode), and video recording function without issues. |
+| 🟡 | **`Mostly Working`** | Partial success. The app launches and photos can be taken, but specific auxiliary sensors or advanced modes (e.g., slow motion, ultrawide switching, Ultra-Res mode) do not work. |
+| 🔴 | **`App Crashes`** | Sideload finishes and the app is installed, but the app immediately crashes, freezes, or force-closes upon launch. |
+| ⚪ | **`App Missing`** | Sideload completes, but after booting the ROM, Moto Camera is completely absent from the app drawer and system partition. |
+| ⛔ | **`Won't Boot`** | The flashed package caused the device to bootloop, dump into recovery, or hang on the boot animation (softbrick). |
+| ⚠️ | **`Won't Compile`** | The compiler script encountered an error, missing dependency, or failed partition extraction and could not generate a flashable zip. |
+| ❔ | **`Untested`** | No community-verified test reports submitted yet, but this device is expected to be compatible based on its stock Moto Camera architecture. |
+
+---
+
 ## 📱 Actively Maintained Motorola Devices ({len(active_devices)})
 
 Devices listed here have active LineageOS maintainers and up-to-date trees. Since downstream custom ROMs (such as **crDroid**, **PixelOS**, **Evolution X**, and **DerpFest**) inherit LineageOS trees and HALs, these devices represent prime targets for **Moto Camera Restored**.
 
-| Device Name | Codename | LineageOS Branch | Stock Camera Era |
-| :--- | :--- | :--- | :--- |
+| Device Name | Codename | LineageOS Branch | Stock Camera Era | Status |
+| :--- | :--- | :--- | :--- | :---: |
 """
 
     for d in active_devices:
-        content += f"| **{d['name']}** | `{d['codename']}` | {d['branch']} | {d['native_cam']} |\n"
+        status = get_device_status(d['codename'], reports_dir)
+        content += f"| [**{d['name']}**](reports/{d['codename']}.md) | `{d['codename']}` | {d['branch']} | {d['native_cam']} | {status} |\n"
 
     content += f"""
 ---
@@ -133,12 +234,13 @@ These devices previously received official LineageOS builds but are no longer ac
 <details>
 <summary>Click to expand legacy devices list</summary>
 
-| Device Name | Codename | Last Branch | Stock Camera Era |
-| :--- | :--- | :--- | :--- |
+| Device Name | Codename | Last Branch | Stock Camera Era | Status |
+| :--- | :--- | :--- | :--- | :---: |
 """
 
     for d in legacy_devices:
-        content += f"| {d['name']} | `{d['codename']}` | {d['branch']} | {d['native_cam']} |\n"
+        status = get_device_status(d['codename'], reports_dir)
+        content += f"| [{d['name']}](reports/{d['codename']}.md) | `{d['codename']}` | {d['branch']} | {d['native_cam']} | {status} |\n"
 
     content += """
 </details>
@@ -152,11 +254,13 @@ def main():
     parser = argparse.ArgumentParser(description="Update COMPATIBILITY.md from LineageOS Wiki data")
     parser.add_argument("--wiki-path", default="/tmp/lineage_wiki", help="Path to cloned lineage_wiki repository")
     parser.add_argument("--output", default="COMPATIBILITY.md", help="Output Markdown path")
+    parser.add_argument("--reports-dir", default="reports", help="Directory where device report markdown files reside")
     args = parser.parse_args()
 
     devices_dir = os.path.join(args.wiki_path, "_data", "devices")
     devices = parse_lineage_devices(devices_dir)
-    generate_markdown(devices, args.output)
+    ensure_device_report_files(devices, args.reports_dir)
+    generate_markdown(devices, args.output, args.reports_dir)
 
 if __name__ == '__main__':
     main()

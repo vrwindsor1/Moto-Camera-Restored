@@ -1,0 +1,242 @@
+name: "Device Compatibility Report"
+description: "Report test results for your Motorola device and custom ROM"
+title: "[Compatibility]: <Device Name> (<Codename>)"
+labels: ["compatibility", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Community Device Compatibility Report
+        Thank you for testing **Moto Camera Restored**! Your report helps maintain our community hardware compatibility list.
+        
+        Before submitting, please make sure you have:
+        1. Taken a full backup in recovery before flashing.
+        2. Extracted files from official stock firmware matching your device model.
+
+  - type: dropdown
+    id: compiler_method
+    attributes:
+      label: Compiler Method
+      description: Which script did you use to generate the flashable zip?
+      options:
+        - ".sh (Linux Shell Script)"
+        - ".ps1 (Windows PowerShell Script)"
+        - ".bat (Windows Batch Launcher)"
+    validations:
+      required: true
+
+  - type: input
+    id: device_name
+    attributes:
+      label: Device Marketing Name
+      description: "Official device marketing name (e.g., Moto G Stylus 5G (2023), Motorola Edge 40 Pro, Razr+ 2024)."
+      placeholder: "e.g. Moto G Stylus 5G (2023)"
+    validations:
+      required: true
+
+  - type: input
+    id: device_codename
+    attributes:
+      label: Device Codename
+      description: "Internal board codename (e.g., genevn, rtwo, manaus, bronco, eqs, devon)."
+      placeholder: "e.g. genevn"
+    validations:
+      required: true
+
+  - type: input
+    id: device_model
+    attributes:
+      label: Device Model Number
+      description: "Specific hardware SKU / Model # (found in Settings > About Phone, fastboot getvar product, or box)."
+      placeholder: "e.g. XT2315-1, XT2301-4, XT2417-1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: camera_generation
+    attributes:
+      label: Stock Camera Era Restored
+      description: "Which generation of Moto Camera does your device natively run?"
+      options:
+        - "Moto Camera 2 (2016–2019 / Android 7–9)"
+        - "Moto Camera 3 (2020–2021 / Android 10–11)"
+        - "Moto Camera 4 (2022–2024 / Android 12–14)"
+        - "Moto Camera 5 (2025+ / Android 15+)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: result
+    attributes:
+      label: Test Result
+      description: "What was the final outcome after flashing the recovery package?"
+      options:
+        - "Works Perfectly (All cameras, auxiliary lenses, Ultra-Res, and modes working)"
+        - "Mostly Working (App works, but specific auxiliary lenses, Ultra-Res, or modes fail)"
+        - "App Crashes (App crashes, force closes, or freezes on open)"
+        - "App Missing (Device booted normally, but Moto Camera was not installed/visible)"
+        - "Won't Boot (Bootloop, softbrick, or dumps directly into recovery)"
+        - "Won't Compile (Compiler script failed or halted during package generation)"
+    validations:
+      required: true
+
+  - type: input
+    id: custom_rom
+    attributes:
+      label: Custom ROM & Android Version
+      description: "Custom ROM name, version, and Android base."
+      placeholder: "e.g. LineageOS 22.2 (Android 15), crDroid 11, PixelOS 15"
+    validations:
+      required: true
+
+  - type: input
+    id: stock_firmware
+    attributes:
+      label: Stock Firmware Source / Build
+      description: "What stock Motorola firmware build or version did you extract from?"
+      placeholder: "e.g. U1TGNS34.42_86_2_38 (RSA stock Android 14 dump)"
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Sensor & Feature Breakdown
+        Select the operational status for each hardware sensor and software feature below:
+
+  - type: dropdown
+    id: feat_main
+    attributes:
+      label: Main Camera (Photo)
+      options:
+        - "Working"
+        - "Not Working"
+        - "Untested"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feat_ultrawide
+    attributes:
+      label: Ultrawide Camera
+      options:
+        - "Working"
+        - "Not Working"
+        - "Untested"
+        - "N/A (Hardware not present)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feat_macro
+    attributes:
+      label: Macro Camera
+      options:
+        - "Working"
+        - "Not Working"
+        - "Untested"
+        - "N/A (Hardware not present)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feat_telephoto
+    attributes:
+      label: Telephoto Camera
+      options:
+        - "Working"
+        - "Not Working"
+        - "Untested"
+        - "N/A (Hardware not present)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feat_front
+    attributes:
+      label: Front (Selfie) Camera
+      options:
+        - "Working"
+        - "Not Working"
+        - "Untested"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feat_ultra_res
+    attributes:
+      label: Ultra-Res Photo Mode (High-Resolution)
+      description: "Full sensor resolution mode (e.g., 50MP / 64MP / 108MP / 200MP Ultra-Res capture)"
+      options:
+        - "Working"
+        - "Not Working"
+        - "Untested"
+        - "N/A (Hardware not present)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feat_video
+    attributes:
+      label: Video Recording (1080p / 4K)
+      options:
+        - "Working"
+        - "Not Working"
+        - "Untested"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feat_slowmo
+    attributes:
+      label: Slow Motion Video
+      options:
+        - "Working"
+        - "Not Working"
+        - "Untested"
+        - "N/A (Hardware not present)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feat_portrait
+    attributes:
+      label: Portrait Mode
+      options:
+        - "Working"
+        - "Not Working"
+        - "Untested"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feat_pro
+    attributes:
+      label: Pro / Manual Mode
+      options:
+        - "Working"
+        - "Not Working"
+        - "Untested"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs_and_notes
+    attributes:
+      label: Logs & Additional Notes
+      description: "If you experienced issues ('App Crashes', 'App Missing', 'Won't Boot', etc.), please provide logcat output, recovery logs, or additional observations."
+      placeholder: "Paste relevant output from `adb logcat -s AndroidRuntime:E CameraService:E` or `/tmp/recovery.log` here."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: verifications
+    attributes:
+      label: Checklist
+      options:
+        - label: "I tested this on an AOSP/LineageOS-based custom ROM."
+          required: true
+        - label: "I used stock Motorola firmware corresponding to my specific device model."
+          required: true
+        - label: "I checked existing compatibility issues/reports to prevent duplicate entries."
+          required: true

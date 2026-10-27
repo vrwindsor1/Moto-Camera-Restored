@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "Device Compatibility Matrix & Reports"
+    url: "https://github.com/vrwindsor1/Moto-Camera-Restored/blob/main/COMPATIBILITY.md"
+    about: "View the community-maintained device compatibility table and testing instructions in COMPATIBILITY.md."
