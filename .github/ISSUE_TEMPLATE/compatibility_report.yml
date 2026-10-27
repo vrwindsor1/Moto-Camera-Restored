@@ -20,7 +20,6 @@ body:
       options:
         - ".sh (Linux Shell Script)"
         - ".ps1 (Windows PowerShell Script)"
-        - ".bat (Windows Batch Launcher)"
     validations:
       required: true
 

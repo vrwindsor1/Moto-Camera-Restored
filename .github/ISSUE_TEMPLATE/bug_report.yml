@@ -15,7 +15,6 @@ body:
       options:
         - "Linux (compile_recovery_package_linux.sh)"
         - "Windows PowerShell (compile_recovery_package_windows.ps1)"
-        - "Windows Batch (compile_recovery_package_windows.bat)"
     validations:
       required: true
 

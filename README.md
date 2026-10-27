@@ -114,11 +114,9 @@ If you prefer not to clone the full repository, you can download just the compil
   curl -sSLO https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_linux.sh
   chmod +x compile_recovery_package_linux.sh
   ```
-* **Windows (PowerShell & Batch):**
-  Download [`compile_recovery_package_windows.bat`](https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_windows.bat) and [`compile_recovery_package_windows.ps1`](https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_windows.ps1) into the same directory:
+* **Windows (PowerShell):**
   ```powershell
   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_windows.ps1" -OutFile "compile_recovery_package_windows.ps1"
-  Invoke-WebRequest -Uri "https://raw.githubusercontent.com/vrwindsor1/Moto-Camera-Restored/main/compile_recovery_package_windows.bat" -OutFile "compile_recovery_package_windows.bat"
   ```
 
 > [!NOTE]
@@ -153,17 +151,14 @@ chmod +x compile_recovery_package_linux.sh
 ./compile_recovery_package_linux.sh "/path/to/stock_firmware" [output_dir] [template_dir]
 ```
 
-#### Windows
-* **PowerShell:**
-  ```powershell
-  # Interactive mode:
-  .\compile_recovery_package_windows.ps1
+#### Windows (PowerShell)
+```powershell
+# Interactive mode (prompts for firmware path and template resolution):
+.\compile_recovery_package_windows.ps1
 
-  # CLI mode:
-  .\compile_recovery_package_windows.ps1 -FirmwarePath "C:\path\to\stock_firmware" [-OutputDir "C:\output"] [-TemplateDir "C:\templates"]
-  ```
-* **Batch Launcher:**
-  Double-click `compile_recovery_package_windows.bat` (or run it via Command Prompt) and follow the interactive prompts.
+# CLI mode:
+.\compile_recovery_package_windows.ps1 -FirmwarePath "C:\path\to\stock_firmware" [-OutputDir "C:\output"] [-TemplateDir "C:\templates"]
+```
 
 The compiled package and build manifest will be placed in the `output/` directory:
 ```text
