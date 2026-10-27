@@ -302,6 +302,19 @@ def main():
 
     # --- 2. Update COMPATIBILITY.md ---
     update_compatibility_md(device_key, badge_emoji, result_cat)
+
+    # --- 3. Set GitHub Action Outputs ---
+    gh_output = os.environ.get("GITHUB_OUTPUT")
+    if gh_output:
+        try:
+            with open(gh_output, "a", encoding="utf-8") as f_out:
+                f_out.write(f"device_name={device_name}\n")
+                f_out.write(f"device_codename={codename}\n")
+                f_out.write(f"issue_title=[Compatibility]: {device_name} ({codename})\n")
+            print(f"[INFO] Exported issue_title='[Compatibility]: {device_name} ({codename})' to GITHUB_OUTPUT.")
+        except Exception as e:
+            print(f"[WARN] Failed to write to GITHUB_OUTPUT: {e}")
+
     print(f"[SUCCESS] Processed compatibility report for {device_name} ({codename}).")
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ jobs:
       startsWith(github.event.issue.title, '[Compatibility]') ||
       contains(github.event.issue.labels.*.name, 'compatibility') ||
       (github.event.action == 'labeled' && (github.event.label.name == 'compatibility' || github.event.label.name == 'import-report')) ||
-      (contains(github.event.issue.body, '### Compiler Method') && contains(github.event.issue.body, '### Device Codename'))
+      (contains(github.event.issue.body, '### Compiler Method') && contains(github.event.issue.body, '### Device'))
     runs-on: ubuntu-latest
 
     steps:
@@ -40,6 +40,28 @@ jobs:
           ISSUE_URL: ${{ github.event.issue.html_url }}
         run: |
           python3 .github/scripts/import_compatibility_report.py
+
+      - name: Auto-update Issue Title with Device Name & Codename
+        if: steps.import_step.outputs.issue_title != ''
+        uses: actions/github-script@v7
+        env:
+          NEW_TITLE: ${{ steps.import_step.outputs.issue_title }}
+        with:
+          script: |
+            const newTitle = process.env.NEW_TITLE;
+            if (newTitle && newTitle.trim().length > 0 && context.payload.issue.title !== newTitle) {
+              try {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  title: newTitle
+                });
+                console.log(`Updated issue title to: ${newTitle}`);
+              } catch (err) {
+                console.log("Error updating issue title:", err);
+              }
+            }
 
       - name: Commit and Push Updated COMPATIBILITY.md and reports/
         id: commit_step
