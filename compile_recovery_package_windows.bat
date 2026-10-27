@@ -1,6 +1,6 @@
 @echo off
 REM ==============================================================================
-REM Moto Camera Restored — Universal Recovery Package Compiler (Windows Launcher)
+REM Moto Camera Restored -- Universal Recovery Package Compiler (Windows Launcher)
 REM Modular Multi-Generation Motorola Camera Recovery Package Compiler
 REM ==============================================================================
 

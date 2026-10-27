@@ -1,9 +1,9 @@
 # ==============================================================================
-# Moto Camera Restored — Universal Recovery Package Compiler (Windows PowerShell)
+# Moto Camera Restored -- Universal Recovery Package Compiler (Windows PowerShell)
 # Modular Multi-Generation Motorola Camera Restoration Toolkit
 #
 # Supported Camera Eras:
-#   * Moto Camera 4 (Working — template active)
+#   * Moto Camera 4 (Working -- template active)
 #   * Moto Camera 5 (In Development)
 #   * Moto Camera 3 (Planned)
 #   * Moto Camera 2 (Planned)
@@ -44,10 +44,10 @@ if (-not $OutputDir) {
 function Write-Header {
     Write-Host ""
     Write-Host "================================================================================" -ForegroundColor Cyan
-    Write-Host "        Moto Camera Restored — Universal Recovery Package Compiler              " -ForegroundColor Cyan
+    Write-Host "        Moto Camera Restored -- Universal Recovery Package Compiler             " -ForegroundColor Cyan
     Write-Host "         Modular Dynamic Multi-Generation Camera Extraction Toolkit             " -ForegroundColor Cyan
     Write-Host "================================================================================" -ForegroundColor Cyan
-    Write-Host "   ⚡ Pair Programmed with Google DeepMind Antigravity                         " -ForegroundColor Magenta
+    Write-Host "   * Pair Programmed with Google DeepMind Antigravity                         " -ForegroundColor Magenta
     Write-Host "================================================================================" -ForegroundColor Cyan
     Write-Host ""
 }
@@ -226,7 +226,7 @@ function Ensure-Templates([string]$WorkDir, [string]$CameraGen, [string]$GenName
             Log-Err "Failed to download required template file: $url"
             Write-Host ""
             Write-Host "[NOTE] The recovery template module '$CameraGen' ($GenName) is currently in development / not yet available." -ForegroundColor Yellow
-            Write-Host "Currently active & working module: Moto Camera 4 ('camera4')." -ForegroundColor Gray
+            Write-Host "Currently active and working module: Moto Camera 4 ('camera4')." -ForegroundColor Gray
             Write-Host "Support for $GenName will be added in a future update." -ForegroundColor Gray
             exit 1
         }
@@ -300,7 +300,7 @@ if (Test-Path (Join-Path $FirmwareRoot "system\system")) {
     $sysPath = Join-Path $FirmwareRoot "system\system"
 }
 
-# 3. Device Profiling & Metadata Discovery
+# 3. Device Profiling and Metadata Discovery
 Log-Info "Profiling device hardware and firmware properties..."
 $propFiles = @(
     (Join-Path $FirmwareRoot "product\etc\build.prop"),
@@ -486,7 +486,7 @@ try {
     Log-Info "Harvesting $CameraGenName binaries, libraries, and frameworks..."
 
     # Product Partition
-    Log-Info "  - Harvesting Product applications & permissions..."
+    Log-Info "  - Harvesting Product applications and permissions..."
     if ($MainCameraApk) {
         $camParent = $MainCameraApk.Directory.FullName
         Copy-BlobDir $camParent (Join-Path $StagingDir ("product\priv-app\" + $MainCameraApk.Directory.Name))
@@ -549,7 +549,7 @@ try {
         }
     }
 
-    # Vendor Camera HAL & VINTF Manifest
+    # Vendor Camera HAL and VINTF Manifest
     Log-Info "  - Harvesting Vendor HAL services and VINTF manifests..."
     Copy-BlobPattern (Join-Path $FirmwareRoot "vendor\bin\hw\motorola.hardware.camera.*") (Join-Path $StagingDir "system\vendor\bin\hw")
     Copy-BlobPattern (Join-Path $FirmwareRoot "vendor\etc\init\motorola.hardware.camera.*") (Join-Path $StagingDir "system\vendor\etc\init")
@@ -567,22 +567,22 @@ try {
     } else {
         $vintfParent = Split-Path -Parent $vintfDest
         if (-not (Test-Path $vintfParent)) { New-Item -ItemType Directory -Path $vintfParent -Force | Out-Null }
-        $manifestXml = @"
-<manifest version="1.0" type="device">
-    <hal format="hidl">
-        <name>motorola.hardware.camera.imgtuner</name>
-        <transport>hwbinder</transport>
-        <version>1.0</version>
-        <version>2.0</version>
-        <interface>
-            <name>IImageTuning</name>
-            <instance>default</instance>
-        </interface>
-        <fqname>@1.0::IImageTuning/default</fqname>
-        <fqname>@2.0::IImageTuning/default</fqname>
-    </hal>
-</manifest>
-"@
+        $manifestXml = @(
+            '<manifest version="1.0" type="device">',
+            '    <hal format="hidl">',
+            '        <name>motorola.hardware.camera.imgtuner</name>',
+            '        <transport>hwbinder</transport>',
+            '        <version>1.0</version>',
+            '        <version>2.0</version>',
+            '        <interface>',
+            '            <name>IImageTuning</name>',
+            '            <instance>default</instance>',
+            '        </interface>',
+            '        <fqname>@1.0::IImageTuning/default</fqname>',
+            '        <fqname>@2.0::IImageTuning/default</fqname>',
+            '    </hal>',
+            '</manifest>'
+        ) -join [System.Environment]::NewLine
         Set-Content -Path $vintfDest -Value $manifestXml -Encoding ASCII
     }
 
@@ -593,13 +593,13 @@ try {
     Copy-Item -Path (Join-Path $TemplatesDir "*") -Destination $RecBuildDir -Recurse -Force
 
     # Write dynamic build.prop metadata
-    $recBuildProp = @"
-arch=arm64
-version=$SdkLevel
-version_nice=$AndroidVersion.0.0
-ro.product.device=$DeviceCodename
-ro.product.model=$DeviceModel
-"@
+    $recBuildProp = @(
+        "arch=arm64",
+        "version=$SdkLevel",
+        "version_nice=$AndroidVersion.0.0",
+        "ro.product.device=$DeviceCodename",
+        "ro.product.model=$DeviceModel"
+    ) -join [System.Environment]::NewLine
     Set-Content -Path (Join-Path $RecBuildDir "build.prop") -Value $recBuildProp -Encoding ASCII
 
     # addon.d scripts
@@ -668,21 +668,21 @@ ro.product.model=$DeviceModel
 
     # Write info text summary
     $infoPath = Join-Path $AbsOutputDir ("MotoCameraRestored_" + $DeviceCodename + "_info.txt")
-    $infoContent = @"
-================================================================================
-Moto Camera Restored — Recovery Package Build Manifest
-================================================================================
-Device Model:       $DeviceModel
-Device Codename:    $DeviceCodename
-Hardware Platform:  $PlatformSoc
-Android Version:    $AndroidVersion (API SDK $SdkLevel)
-Stock Build ID:     $BuildId
-Camera Generation:  $CameraGenName ($CameraVer)
-Template Module:    $CameraGen
-Installer ZIP:      $([System.IO.Path]::GetFileName($ZipOutputPath))
-Build Timestamp:    $([System.DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC"))
-================================================================================
-"@
+    $infoContent = @(
+        "================================================================================",
+        "Moto Camera Restored -- Recovery Package Build Manifest",
+        "================================================================================",
+        "Device Model:       $DeviceModel",
+        "Device Codename:    $DeviceCodename",
+        "Hardware Platform:  $PlatformSoc",
+        "Android Version:    $AndroidVersion (API SDK $SdkLevel)",
+        "Stock Build ID:     $BuildId",
+        "Camera Generation:  $CameraGenName ($CameraVer)",
+        "Template Module:    $CameraGen",
+        "Installer ZIP:      $([System.IO.Path]::GetFileName($ZipOutputPath))",
+        "Build Timestamp:    $([System.DateTime]::UtcNow.ToString('yyyy-MM-dd HH:mm:ss UTC'))",
+        "================================================================================"
+    ) -join [System.Environment]::NewLine
     Set-Content -Path $infoPath -Value $infoContent -Encoding ASCII
 
     $zipSizeMb = [math]::Round((Get-Item $ZipOutputPath).Length / 1MB, 2)
