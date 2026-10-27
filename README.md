@@ -59,12 +59,12 @@ We automatically track and synchronize our compatibility matrix with the officia
 
 ### 🔍 How to Identify Your Device's Camera Generation
 
-| Generation | Package Name | Version Range | Official Launch Window (Play Store) | Key Identifying Features |
-| :--- | :--- | :--- | :--- | :--- |
-| **Moto Camera 2** | `com.motorola.camera2` | `v5.x` – `v7.x` *(e.g. 7.2.x)* | Select devices launched in **2016 – 2019** | Classic circular carousel dial UI, quick-capture wrist twist gesture, early dual-lens depth slider. |
-| **Moto Camera 3** | `com.motorola.camera3` | `v7.x` – `v8.x` *(e.g. 8.0.x, 8.1.x)* | Select devices launched in **2020 and beyond** | Modern flat UI layout with dedicated bottom mode drawer, integrated Google Lens shortcut, Spot Color and Cinemagraph modes. |
-| **Moto Camera 4** | `com.motorola.camera3` | `v9.x` *(e.g. 9.0.x, 9.1.x)* | Select devices launched in **2022 and beyond** | Material You dynamic theming, companion AI engine (`camera.provider.ai`), multi-mic audio zoom, redesigned quick settings panel. |
-| **Moto Camera 5 / Pro** | `com.motorola.camera5`<br>`com.motorola.camerapro`<br>`com.motorola.camera3` | `v1.x` *(Pro/Cam5)* or `v10.x+` | Select devices launched in **2025 and beyond** | Hello UI design language, Moto AI photo enhancement engine, Pro manual controls with focus peaking, zebra striping, action stabilization. |
+| Generation | Package Name | Version Range | Official Launch Window (Play Store) |
+| :--- | :--- | :--- | :--- |
+| **Moto Camera 2** | `com.motorola.camera2` | `v5.x` – `v7.x` *(e.g. 7.2.x)* | Select devices launched in **2016 – 2019** |
+| **Moto Camera 3** | `com.motorola.camera3` | `v7.x` – `v8.x` *(e.g. 8.0.x, 8.1.x)* | Select devices launched in **2020 and beyond** |
+| **Moto Camera 4** | `com.motorola.camera3` | `v9.x` *(e.g. 9.0.x, 9.1.x)* | Select devices launched in **2022 and beyond** |
+| **Moto Camera 5 / Pro** | `com.motorola.camera5`<br>`com.motorola.camerapro`<br>`com.motorola.camera3` | `v1.x` *(Pro/Cam5)* or `v10.x+` | Select devices launched in **2025 and beyond** |
 
 > [!TIP]
 > **How to verify your stock camera generation:**  
