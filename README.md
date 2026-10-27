@@ -48,14 +48,14 @@ We automatically track and synchronize our compatibility matrix with the officia
 
 👉 **[View the Full LineageOS Device Compatibility Matrix (COMPATIBILITY.md)](COMPATIBILITY.md)**
 
-### 🔍 How to Identify Your Device's Camera Generation
+### 📷 Camera Generation Compatibility Status
 
-| Generation | Package Name | Version Range | Official Device Compatibility |
-| :--- | :--- | :--- | :--- |
-| **Moto Camera 2** | `com.motorola.camera2` | `v5.x` – `v7.x` *(e.g. 7.2.x)* | Select devices launched in **2016 – 2019** |
-| **Moto Camera 3** | `com.motorola.camera3` | `v7.x` – `v8.x` *(e.g. 8.0.x, 8.1.x)* | Select devices launched in **2020 and beyond** |
-| **Moto Camera 4** | `com.motorola.camera3` | `v9.x` *(e.g. 9.0.x, 9.1.x)* | Select devices launched in **2022 and beyond** |
-| **Moto Camera 5** | `com.motorola.camera5` | `v10.x` *(e.g. 10.0.x)* | Select devices launched in **2025 and beyond** |
+| Generation | Package Name | Version Range | Official Device Compatibility | Restored Status |
+| :--- | :--- | :--- | :--- | :---: |
+| **Moto Camera 2** | `com.motorola.camera2` | `v5.x` – `v7.x` *(e.g. 7.2.x)* | Select devices launched in **2016 – 2019** | ⏳ Planned |
+| **Moto Camera 3** | `com.motorola.camera3` | `v7.x` – `v8.x` *(e.g. 8.0.x, 8.1.x)* | Select devices launched in **2020 and beyond** | ⏳ Planned |
+| **Moto Camera 4** | `com.motorola.camera3` | `v9.x` *(e.g. 9.0.x, 9.1.x)* | Select devices launched in **2022 and beyond** | 🟢 Working |
+| **Moto Camera 5** | `com.motorola.camera5` | `v10.x` *(e.g. 10.0.x)* | Select devices launched in **2025 and beyond** | 🟡 In Development |
 
 > [!TIP]
 > **How to verify your stock camera generation:**  
