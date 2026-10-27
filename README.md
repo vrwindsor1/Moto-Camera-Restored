@@ -52,7 +52,8 @@ Whether you run **LineageOS**, **crDroid**, **PixelOS**, **DerpFest**, or **Havo
 
 We automatically track and synchronize our per-device compatibility matrix with the official LineageOS Wiki.
 
-👉 **[View the Per-Device Compatibility Matrix](COMPATIBILITY.md)**
+👉 **[View the Per-Device Compatibility Matrix](COMPATIBILITY.md)**  
+📝 **[Submit a Compatibility Report](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=compatibility_report.yml)**
 
 ### 📷 Camera Generation Compatibility Status
 
