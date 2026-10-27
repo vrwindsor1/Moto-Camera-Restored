@@ -17,7 +17,7 @@ jobs:
       startsWith(github.event.issue.title, 'Please DO NOT edit the title') ||
       contains(github.event.issue.labels.*.name, 'compatibility') ||
       (github.event.action == 'labeled' && (github.event.label.name == 'compatibility' || github.event.label.name == 'import-report')) ||
-      (contains(github.event.issue.body, '### Compiler Method') && contains(github.event.issue.body, '### Device'))
+      (contains(github.event.issue.body, '### Test Result') && contains(github.event.issue.body, '### Device'))
     runs-on: ubuntu-latest
 
     steps:

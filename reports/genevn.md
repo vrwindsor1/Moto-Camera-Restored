@@ -19,9 +19,9 @@
 
 ## Community Test Reports
 
-| Report | Compiler | Custom ROM | Stock Firmware | Outcome | Tested Features / Notes |
-| :--- | :---: | :--- | :--- | :---: | :--- |
-| [#1](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/1) by [@vrwindsor1](https://github.com/vrwindsor1) | `.sh` | LineageOS 24.0 (Android 17) | U1TGNS34.42_86_2_38 (RSA stock Android 14 dump) | 🟢 Works Perfectly | Working: Main Camera, Ultrawide, Macro, Telephoto, Front Selfie, Ultra-Res, Video 4K, Slow Motion, Portrait, Pro |
+| Report | Custom ROM | Stock Firmware | Outcome | Tested Features / Notes |
+| :--- | :--- | :--- | :---: | :--- |
+| [#1](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/1) by [@vrwindsor1](https://github.com/vrwindsor1) | LineageOS 24.0 (Android 17) | U1TGNS34.42_86_2_38 (RSA stock Android 14 dump) | 🟢 Works Perfectly | Working: Main Camera, Ultrawide, Macro, Telephoto, Front Selfie, Ultra-Res, Video 4K, Slow Motion, Portrait, Pro |
 
 ---
 

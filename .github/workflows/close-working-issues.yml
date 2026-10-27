@@ -34,7 +34,7 @@ jobs:
 
               const isCompatReport = title.startsWith('[Compatibility]') ||
                 issue.labels.some(l => l.name === 'compatibility') ||
-                (body.includes('### Compiler Method') && (body.includes('### Device') || body.includes('### Test Result')));
+                (body.includes('### Device') && body.includes('### Test Result'));
 
               if (!isCompatReport) {
                 console.log(`Issue #${issue.number} "${title}" is not a compatibility report. Skipping.`);

@@ -176,9 +176,6 @@ def main():
     camera_gen_raw = fields.get("Stock Camera Era Restored", "")
     camera_gen = clean_cell(camera_gen_raw.split(" (")[0]) if camera_gen_raw else "—"
 
-    compiler_raw = fields.get("Compiler Method", "")
-    compiler = parse_compiler_method(compiler_raw)
-
     result_raw = fields.get("Test Result", "")
     badge_emoji, result_cat = determine_badge(result_raw)
 
@@ -195,7 +192,7 @@ def main():
     report_link = f"[#{issue_number}]({issue_url})" if issue_number and issue_url else f"#{issue_number}"
 
     # Build report table row
-    new_report_row = f"| {report_link} by {reporter_str} | {compiler} | {custom_rom} | {stock_fw} | {badge_emoji} {result_cat} | {features_summary} |"
+    new_report_row = f"| {report_link} by {reporter_str} | {custom_rom} | {stock_fw} | {badge_emoji} {result_cat} | {features_summary} |"
     print("New Report Row:", new_report_row)
 
     os.makedirs("reports", exist_ok=True)
@@ -252,11 +249,15 @@ def main():
                     dev_content = dev_content.replace(m_match.group(0), f"- **Model Number(s):** `{model}`")
 
         # Replace table rows
-        parts = dev_content.split("| :--- | :---: | :--- | :--- | :---: | :--- |\n", 1)
+        header_delim = "| :--- | :--- | :--- | :---: | :--- |\n"
+        parts = dev_content.split(header_delim, 1)
+        if len(parts) != 2:
+            parts = dev_content.split("| :--- | :---: | :--- | :--- | :---: | :--- |\n", 1)
+
         if len(parts) == 2:
             footer_parts = parts[1].split("\n---", 1)
             new_table_content = "\n".join(table_lines) + "\n\n---"
-            dev_content = parts[0] + "| :--- | :---: | :--- | :--- | :---: | :--- |\n" + new_table_content + (footer_parts[1] if len(footer_parts) == 2 else "")
+            dev_content = parts[0] + header_delim + new_table_content + (footer_parts[1] if len(footer_parts) == 2 else "")
 
         with open(device_file, "w", encoding="utf-8") as f:
             f.write(dev_content)
@@ -287,8 +288,8 @@ def main():
 
 ## Community Test Reports
 
-| Report | Compiler | Custom ROM | Stock Firmware | Outcome | Tested Features / Notes |
-| :--- | :---: | :--- | :--- | :---: | :--- |
+| Report | Custom ROM | Stock Firmware | Outcome | Tested Features / Notes |
+| :--- | :--- | :--- | :---: | :--- |
 {new_report_row}
 
 ---

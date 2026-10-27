@@ -13,17 +13,6 @@ body:
         Thank you for testing **Moto Camera Restored**! Your report helps maintain our community hardware compatibility list.
 
   - type: dropdown
-    id: compiler_method
-    attributes:
-      label: Compiler Method
-      description: Which environment did you use to run the compiler?
-      options:
-        - ".sh (Linux Native)"
-        - ".sh (Windows WSL)"
-    validations:
-      required: true
-
-  - type: dropdown
     id: device
     attributes:
       label: Device (Marketing Name & Codename)

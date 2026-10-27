@@ -19,9 +19,9 @@
 
 ## Community Test Reports
 
-| Report | Compiler | Custom ROM | Stock Firmware | Outcome | Tested Features / Notes |
-| :--- | :---: | :--- | :--- | :---: | :--- |
-| *No reports yet* | — | — | — | ❔ Untested | Waiting for community test report |
+| Report | Custom ROM | Stock Firmware | Outcome | Tested Features / Notes |
+| :--- | :--- | :--- | :---: | :--- |
+| *No reports yet* | — | — | ❔ Untested | Waiting for community test report |
 
 ---
 
