@@ -12,57 +12,33 @@ import argparse
 from datetime import datetime, timezone
 import yaml
 
-# Heuristic categorization for Motorola Camera generations based on release year / SoC / codename
-CAM2_CODENAMES = {
-    'payton', 'lake', 'river', 'ocean', 'evert', 'nash', 'beckham',
-    'messi', 'channel', 'ali', 'potter', 'sanders', 'athene', 'cedric',
-    'montana', 'albus', 'griffin', 'addison'
-}
-
-CAM3_CODENAMES = {
-    'kane', 'troika', 'kiev', 'nairo', 'nio', 'denver', 'cebu',
-    'guam', 'guamna', 'guamp', 'capri', 'caprip', 'borneo', 'bathena',
-    'ibiza', 'racer'
-}
-
-CAM4_CODENAMES = {
-    'berlin', 'berlna', 'dubai', 'miami', 'milanf', 'rhode', 'rhodep',
-    'devon', 'hawao', 'tundra', 'xpeng', 'eqs', 'ellis'
-}
-
-CAM5_CODENAMES = {
-    'rtwo', 'avatrn', 'fogo', 'fogos', 'lamu', 'lyriq', 'bronco',
-    'genevn', 'bangkk'
-}
-
 def infer_camera_generation(device):
     codename = device.get('codename', '').lower()
     release = str(device.get('release', ''))
-    soc = str(device.get('soc', '')).lower()
 
-    if codename in CAM2_CODENAMES:
-        return "Moto Camera 2", "Moto Camera 2 Recovery Suite"
-    if codename in CAM3_CODENAMES:
-        return "Moto Camera 3", "Moto Camera 3 Recovery Suite"
-    if codename in CAM4_CODENAMES:
-        return "Moto Camera 4", "Moto Camera 4 Recovery Suite"
-    if codename in CAM5_CODENAMES:
-        return "Moto Camera 5", "Moto Camera 5 Recovery Suite"
-
-    # Fallback heuristics based on release year / SoC
     try:
         year = int(release.split('-')[0]) if release else 0
     except ValueError:
         year = 0
 
-    if year >= 2023 or 'gen 2' in soc or 'gen 3' in soc or '8+ gen1' in soc:
-        return "Moto Camera 5", "Moto Camera 5 Recovery Suite"
-    elif year >= 2021 or '695' in soc or '778g' in soc or '680' in soc:
-        return "Moto Camera 4", "Moto Camera 4 Recovery Suite"
-    elif year >= 2019:
-        return "Moto Camera 3", "Moto Camera 3 Recovery Suite"
+    # Motorola official camera era launch windows:
+    # - Moto Camera 5: 2025 and beyond (Hello UI / Android 15+, e.g. lamu)
+    # - Moto Camera 4: 2022 – 2024 (MyUX v2-v4 / Android 12-14)
+    # - Moto Camera 3: 2020 – 2021 (MyUX v1 / Android 10-11)
+    # - Moto Camera 2: 2016 – 2019 (Android 7-9)
+    # - Moto Camera 1: 2011 – 2015 (Legacy / Android 4-6)
+    if codename in {'lamu'}:
+        return "Moto Camera 5"
+    elif year >= 2025:
+        return "Moto Camera 5"
+    elif year >= 2022:
+        return "Moto Camera 4"
+    elif year >= 2020:
+        return "Moto Camera 3"
+    elif year >= 2016:
+        return "Moto Camera 2"
     else:
-        return "Moto Camera 2", "Moto Camera 2 Recovery Suite"
+        return "Moto Camera 1"
 
 def parse_lineage_devices(devices_dir):
     devices = []
@@ -98,7 +74,7 @@ def parse_lineage_devices(devices_dir):
         release = data.get('release', 'N/A')
         models = data.get('models', [])
 
-        native_cam, recommended_suite = infer_camera_generation({
+        native_cam = infer_camera_generation({
             'codename': codename,
             'release': release,
             'soc': soc
@@ -113,7 +89,6 @@ def parse_lineage_devices(devices_dir):
             'maintainers': maintainers,
             'is_active': is_active,
             'native_cam': native_cam,
-            'recommended_suite': recommended_suite,
             'models': models
         })
 
