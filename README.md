@@ -57,14 +57,21 @@ We automatically track and synchronize our compatibility matrix with the officia
 
 👉 **[View the Full LineageOS Device Compatibility Matrix (COMPATIBILITY.md)](COMPATIBILITY.md)**
 
-### Supported Generations Overview
+### 🔍 How to Identify Your Device's Camera Generation
 
-| Camera Generation | Original Stock Era | Example Target Devices | Target Recovery Package |
-| :--- | :--- | :--- | :--- |
-| **Moto Camera 2** | Snapdragon 630 / 632 / 636 / 835 (Android 7–9) | `payton` (Moto X4), `lake` (G7 Plus), `river` (G7), `nash` (Z2 Force) | **MotCamera 2 Recovery Suite** |
-| **Moto Camera 3** | Snapdragon 662 / 750G / 765G / 870 (Android 10–11) | `nio` (Moto G100), `kiev` (Moto G 5G), `guamp` (G9 Play) | **MotCamera 3 Recovery Suite** |
-| **Moto Camera 4** | Snapdragon 695 / 680 / 778G / 888+ (Android 12–13) | `dubai` (Edge 30), `miami` (Edge 30 Neo), `rhode` (G52) | **MotCamera 4 Recovery Suite** |
-| **Moto Camera 5** | Snapdragon 8 Gen 2 / 8+ Gen 1 / 6 Gen 1 (Android 14+) | `rtwo` (Edge 40 Pro / Edge+ 2023), `genevn` (G Stylus 5G 2023) | **MotCamera 5 Recovery Suite** |
+| Generation | Package Name | APK File(s) | Version Range | Stock Android Era | Key Identifying Features |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Moto Camera 2** | `com.motorola.camera2` | `MotCamera2.apk` | `v5.x` – `v7.x` *(e.g. 7.2.x)* | Android 7 – 9 *(Nougat, Oreo, Pie)* | Classic circular carousel dial UI, quick-capture wrist twist gesture, early dual-lens depth slider. |
+| **Moto Camera 3** | `com.motorola.camera3` | `MotCamera3.apk` | `v7.x` – `v8.x` *(e.g. 8.0.x, 8.1.x)* | Android 10 – 11 *(Early MyUX)* | Modern flat UI layout with dedicated bottom mode drawer, integrated Google Lens shortcut, Spot Color and Cinemagraph modes. |
+| **Moto Camera 4** | `com.motorola.camera3` | `MotCamera3.apk` | `v9.x` *(e.g. 9.0.x, 9.1.x)* | Android 12 – 13 *(MyUX)* | Material You dynamic theming, companion AI engine (`camera.provider.ai`), multi-mic audio zoom, redesigned quick settings panel. |
+| **Moto Camera 5** | `com.motorola.camera5`<br>`com.motorola.camerapro`<br>`com.motorola.camera3` | `MotCamera5.apk`<br>`MotCameraPro.apk`<br>`MotCamera3.apk` | `v1.x` *(Pro/Cam5)* or `v10.x+` | Android 14 – 15+ *(Hello UI)* | Hello UI design language, Moto AI photo enhancement engine, Pro manual controls with focus peaking, zebra striping, action stabilization. |
+
+> [!TIP]
+> **How to verify your stock camera generation:**  
+> If you have a running stock device or extracted stock firmware:
+> * **Package Name:** Look inside `/product/priv-app/` or `/system_ext/priv-app/` for `MotCamera*.apk`
+> * **ADB Query:** Run `adb shell pm list packages | grep motorola.camera`
+> * **Version Code:** Run `adb shell dumpsys package <package_name> | grep versionName`
 
 ---
 
