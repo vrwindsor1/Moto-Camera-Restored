@@ -116,8 +116,6 @@ def generate_markdown(devices, output_file):
 
 Devices listed here have active LineageOS maintainers and up-to-date trees. Since downstream custom ROMs (such as **crDroid**, **PixelOS**, **Evolution X**, and **DerpFest**) inherit LineageOS trees and HALs, these devices represent prime targets for **Moto Camera Restored**.
 
-All packages are compiled into **recovery sideload flashable zips** (`adb sideload`) with **`addon.d` OTA survival**—**no root (Magisk/KernelSU) required**.
-
 | Device Name | Codename | LineageOS Branch | Stock Camera Era |
 | :--- | :--- | :--- | :--- |
 """
