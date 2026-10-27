@@ -1,0 +1,54 @@
+name: Sync LineageOS Device Matrix
+
+on:
+  schedule:
+    # Run every Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/update_compatibility.py'
+      - '.github/workflows/update-devices.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-devices:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Checkout LineageOS Wiki
+        uses: actions/checkout@v4
+        with:
+          repository: LineageOS/lineage_wiki
+          path: lineage_wiki
+          depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Update Compatibility Matrix
+        run: |
+          python scripts/update_compatibility.py --wiki-path lineage_wiki --output COMPATIBILITY.md
+
+      - name: Clean up temporary wiki checkout
+        run: rm -rf lineage_wiki
+
+      - name: Commit & Push Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(compatibility): auto-update LineageOS device compatibility matrix [skip ci]"
+          file_pattern: "COMPATIBILITY.md"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "41898282+github-actions[bot]@users.noreply.github.com"
+          commit_author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
