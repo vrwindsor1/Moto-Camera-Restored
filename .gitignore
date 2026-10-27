@@ -26,7 +26,15 @@ wheels/
 # Temporary LineageOS Wiki clones
 lineage_wiki/
 tmp/
+temp/
+work/
 *.log
+*.tmp
+
+# Generated recovery packages & output
+output/
+*.img
+super.img_sparsechunk.*
 
 # OS generated
 .DS_Store

@@ -1,0 +1,419 @@
+#!/sbin/sh
+# ==============================================================================
+# Motorola Camera 4 Suite Recovery Installer (Universal)
+# Dynamic installation script for any Moto Camera 4 supported device
+# Compatible with LineageOS, AOSP, and custom ROMs (Android 13 - 17+)
+# ==============================================================================
+
+OUTFD="/proc/self/fd/$2"
+ZIP=$3
+
+set_con() {
+  chcon -h u:object_r:"$1":s0 "$2" 2>/dev/null || true
+  chcon u:object_r:"$1":s0 "$2" 2>/dev/null || true
+}
+
+set_perm() {
+  chmod $1 "$2" 2>/dev/null || true
+}
+
+set_owner() {
+  chown $1:$2 "$3" 2>/dev/null || true
+}
+
+ui_print() {
+  echo "ui_print $1" > "$OUTFD";
+  echo "ui_print" > "$OUTFD";
+}
+
+cleanup() {
+  ui_print "Cleaning up temporary files..."
+  rm -rf $TMP/system
+  rm -rf $TMP/bin
+  rm -f $TMP/toybox
+  rm -f $TMP/motocamera.prop
+
+  ui_print "Unmounting partitions..."
+  umount -l /mnt/system 2>/dev/null || true
+  umount -l /system 2>/dev/null || true
+  umount -l /mnt/product 2>/dev/null || true
+  umount -l /product 2>/dev/null || true
+  umount -l /mnt/system_ext 2>/dev/null || true
+  umount -l /system_ext 2>/dev/null || true
+  umount -l /mnt/vendor 2>/dev/null || true
+  umount -l /vendor 2>/dev/null || true
+}
+
+error() {
+  ui_print "! $1"
+  cleanup
+  exit 1
+}
+
+find_block() {
+  local name="$1"
+  local dev=""
+  for prefix in "/dev/block/mapper" "/dev/block/bootdevice/by-name" "/dev/block/by-name"; do
+    if [ -n "$SLOT_SUFFIX" ] && [ -b "${prefix}/${name}${SLOT_SUFFIX}" ]; then
+      dev="${prefix}/${name}${SLOT_SUFFIX}"
+      break
+    elif [ -b "${prefix}/${name}" ]; then
+      dev="${prefix}/${name}"
+      break
+    fi
+  done
+  echo "$dev"
+}
+
+# ------------------------------------------------------------------------------
+# 1. Unpack Installer Archive & Parse Device Metadata
+# ------------------------------------------------------------------------------
+ui_print "Extracting installer archive..."
+TMP=/tmp
+cd "$TMP"
+unzip -o "$ZIP" >/dev/null 2>&1
+rm -rf META-INF
+
+MOTO_DEV=""
+MOTO_MODEL=""
+MOTO_BUILD=""
+MOTO_ANDROID=""
+MOTO_VERSION=""
+if [ -f "motocamera.prop" ]; then
+  MOTO_DEV=$(grep "^ro.motocamera.device=" motocamera.prop 2>/dev/null | cut -d= -f2- | tr -d '\r')
+  MOTO_MODEL=$(grep "^ro.motocamera.model=" motocamera.prop 2>/dev/null | cut -d= -f2- | tr -d '\r')
+  MOTO_BUILD=$(grep "^ro.motocamera.build_id=" motocamera.prop 2>/dev/null | cut -d= -f2- | tr -d '\r')
+  MOTO_ANDROID=$(grep "^ro.motocamera.android=" motocamera.prop 2>/dev/null | cut -d= -f2- | tr -d '\r')
+  MOTO_VERSION=$(grep "^ro.motocamera.version=" motocamera.prop 2>/dev/null | cut -d= -f2- | tr -d '\r')
+fi
+
+ui_print "=================================================="
+ui_print "  Motorola Camera 4 Suite Recovery Installer      "
+if [ -n "$MOTO_MODEL" ]; then
+  ui_print "  Target: $MOTO_MODEL (${MOTO_DEV:-generic})"
+else
+  ui_print "  Target: Universal Motorola Device               "
+fi
+if [ -n "$MOTO_VERSION" ]; then
+  ui_print "  Camera Version: $MOTO_VERSION"
+fi
+if [ -n "$MOTO_BUILD" ]; then
+  ui_print "  Firmware Base: $MOTO_BUILD (Android ${MOTO_ANDROID:-14})"
+fi
+ui_print "=================================================="
+
+# ------------------------------------------------------------------------------
+# 2. Setup Execution Environment (Toybox)
+# ------------------------------------------------------------------------------
+ui_print "Setting up execution environment..."
+TOYBOX="${TMP}/toybox"
+chmod +x "$TOYBOX"
+
+TOYS_PATH="${TMP}/bin"
+rm -rf "$TOYS_PATH"
+$TOYBOX install -d "$TOYS_PATH" 2>/dev/null || mkdir -p "$TOYS_PATH"
+for toy in $($TOYBOX 2>/dev/null); do
+  $TOYBOX ln -sf "$TOYBOX" "${TOYS_PATH}/${toy}" 2>/dev/null || true
+done
+PATH="${TOYS_PATH}:${PATH}"
+
+# ------------------------------------------------------------------------------
+# 3. Detect Slot & Partitions
+# ------------------------------------------------------------------------------
+ui_print "Detecting device slot and target partitions..."
+CURRENTSLOT=`getprop ro.boot.slot_suffix`
+[ -z "$CURRENTSLOT" ] && CURRENTSLOT=`getprop ro.boot.slot`
+if [ "$CURRENTSLOT" = "_a" ] || [ "$CURRENTSLOT" = "a" ]; then
+  SLOT_SUFFIX="_a"
+elif [ "$CURRENTSLOT" = "_b" ] || [ "$CURRENTSLOT" = "b" ]; then
+  SLOT_SUFFIX="_b"
+else
+  SLOT_SUFFIX=""
+fi
+ui_print "  - Active slot: ${SLOT_SUFFIX:-none}"
+
+# Unmount any existing mounts
+umount /system 2>/dev/null || umount /mnt/system 2>/dev/null || true
+umount /product 2>/dev/null || umount /mnt/product 2>/dev/null || true
+umount /system_ext 2>/dev/null || umount /mnt/system_ext 2>/dev/null || true
+umount /vendor 2>/dev/null || umount /mnt/vendor 2>/dev/null || true
+
+SYSTEM_BLOCK=$(find_block "system")
+PRODUCT_BLOCK=$(find_block "product")
+SYSTEM_EXT_BLOCK=$(find_block "system_ext")
+VENDOR_BLOCK=$(find_block "vendor")
+
+ui_print "Disabling block device write protection..."
+[ -n "$SYSTEM_BLOCK" ] && blockdev --setrw "$SYSTEM_BLOCK" 2>/dev/null || true
+[ -n "$PRODUCT_BLOCK" ] && blockdev --setrw "$PRODUCT_BLOCK" 2>/dev/null || true
+[ -n "$SYSTEM_EXT_BLOCK" ] && blockdev --setrw "$SYSTEM_EXT_BLOCK" 2>/dev/null || true
+[ -n "$VENDOR_BLOCK" ] && blockdev --setrw "$VENDOR_BLOCK" 2>/dev/null || true
+
+# ------------------------------------------------------------------------------
+# 4. Mount Partitions
+# ------------------------------------------------------------------------------
+ui_print "Mounting target partitions..."
+# Mount System
+SYSTEM_MNT=/mnt/system
+mkdir -p "$SYSTEM_MNT" 2>/dev/null || true
+if mount -o rw "$SYSTEM_BLOCK" "$SYSTEM_MNT" 2>/dev/null || mount "$SYSTEM_BLOCK" "$SYSTEM_MNT" 2>/dev/null; then
+  ui_print "  - System partition mounted rw (/mnt/system)"
+else
+  error "Could not mount system partition ($SYSTEM_BLOCK)! Aborting."
+fi
+
+if [ -d "${SYSTEM_MNT}/system" ]; then
+  SYSTEM_OUT="${SYSTEM_MNT}/system"
+else
+  SYSTEM_OUT="${SYSTEM_MNT}"
+fi
+
+# Mount Product
+PRODUCT_OUT=""
+if [ -n "$PRODUCT_BLOCK" ]; then
+  mkdir -p /mnt/product 2>/dev/null || true
+  if mount -o rw "$PRODUCT_BLOCK" /mnt/product 2>/dev/null || mount "$PRODUCT_BLOCK" /mnt/product 2>/dev/null; then
+    ui_print "  - Product partition mounted (/mnt/product)"
+    PRODUCT_OUT=/mnt/product
+  fi
+fi
+if [ -z "$PRODUCT_OUT" ]; then
+  if [ -d "${SYSTEM_OUT}/product" ] && [ ! -L "${SYSTEM_OUT}/product" ]; then
+    PRODUCT_OUT="${SYSTEM_OUT}/product"
+  elif [ -d "${SYSTEM_MNT}/product" ] && [ ! -L "${SYSTEM_MNT}/product" ]; then
+    PRODUCT_OUT="${SYSTEM_MNT}/product"
+  else
+    PRODUCT_OUT=/mnt/product
+  fi
+fi
+
+# Mount System_ext
+SYSTEM_EXT_OUT=""
+if [ -n "$SYSTEM_EXT_BLOCK" ]; then
+  mkdir -p /mnt/system_ext 2>/dev/null || true
+  if mount -o rw "$SYSTEM_EXT_BLOCK" /mnt/system_ext 2>/dev/null || mount "$SYSTEM_EXT_BLOCK" /mnt/system_ext 2>/dev/null; then
+    ui_print "  - System_ext partition mounted (/mnt/system_ext)"
+    SYSTEM_EXT_OUT=/mnt/system_ext
+  fi
+fi
+if [ -z "$SYSTEM_EXT_OUT" ]; then
+  if [ -d "${SYSTEM_OUT}/system_ext" ] && [ ! -L "${SYSTEM_OUT}/system_ext" ]; then
+    SYSTEM_EXT_OUT="${SYSTEM_OUT}/system_ext"
+  elif [ -d "${SYSTEM_MNT}/system_ext" ] && [ ! -L "${SYSTEM_MNT}/system_ext" ]; then
+    SYSTEM_EXT_OUT="${SYSTEM_MNT}/system_ext"
+  else
+    SYSTEM_EXT_OUT=/mnt/system_ext
+  fi
+fi
+
+# Mount Vendor (optional / best effort)
+VENDOR_OUT=""
+if [ -n "$VENDOR_BLOCK" ]; then
+  mkdir -p /mnt/vendor 2>/dev/null || true
+  if mount -o rw "$VENDOR_BLOCK" /mnt/vendor 2>/dev/null; then
+    ui_print "  - Vendor partition mounted rw (/mnt/vendor)"
+    VENDOR_OUT=/mnt/vendor
+  fi
+fi
+
+# ------------------------------------------------------------------------------
+# 5. Generate OTA addon.d Backup Survival Script
+# ------------------------------------------------------------------------------
+cd system
+
+ui_print "Generating LineageOS addon.d OTA backup script..."
+cat addon.d/addond_head > addon.d/30-motocamera.sh
+for f in `find . ! -path "./addon.d/*" -type f`; do
+  line=$(echo "$f" | sed 's/\.\///')
+  echo "$line" >> addon.d/30-motocamera.sh
+done
+cat addon.d/addond_tail >> addon.d/30-motocamera.sh
+rm -f addon.d/addond_head addon.d/addond_tail
+
+# ------------------------------------------------------------------------------
+# 6. Deploy Proprietary Files
+# ------------------------------------------------------------------------------
+ui_print "Installing Motorola Camera 4 Suite components..."
+
+# Product partition (MotCamera4, MotCamera3AI, permissions, audio)
+if [ -d "product" ] && [ -n "$PRODUCT_OUT" ]; then
+  ui_print "  - Installing Product apps and configurations..."
+  mkdir -p "$PRODUCT_OUT"
+  cp -a product/* "$PRODUCT_OUT/"
+fi
+
+# System_ext partition (ImagerTuning, MotCameraDesktop, frameworks, libs)
+if [ -d "system_ext" ] && [ -n "$SYSTEM_EXT_OUT" ]; then
+  ui_print "  - Installing System_ext apps, frameworks, and native libraries..."
+  mkdir -p "$SYSTEM_EXT_OUT"
+  cp -a system_ext/* "$SYSTEM_EXT_OUT/"
+fi
+
+# System partition (motosignature, moto-settings, moto-core_services, addon.d)
+ui_print "  - Installing System framework, signature jars, and OTA script..."
+mkdir -p "$SYSTEM_OUT/framework" "$SYSTEM_OUT/etc/permissions" "$SYSTEM_OUT/addon.d" 2>/dev/null || true
+[ -d "framework" ] && cp -a framework/* "$SYSTEM_OUT/framework/"
+[ -d "etc/permissions" ] && cp -a etc/permissions/* "$SYSTEM_OUT/etc/permissions/"
+if [ -d "lib64" ]; then
+  mkdir -p "$SYSTEM_OUT/lib64" 2>/dev/null || true
+  cp -a lib64/* "$SYSTEM_OUT/lib64/"
+fi
+if [ -d "lib" ]; then
+  mkdir -p "$SYSTEM_OUT/lib" 2>/dev/null || true
+  cp -a lib/* "$SYSTEM_OUT/lib/"
+fi
+cp -a addon.d/30-motocamera.sh "$SYSTEM_OUT/addon.d/"
+
+# Vendor partition (ImageTuner HAL, desktop service, VINTF manifest)
+if [ -d "vendor" ] && [ -n "$VENDOR_OUT" ]; then
+  ui_print "  - Installing Vendor HAL services and VINTF manifests..."
+  mkdir -p "$VENDOR_OUT"
+  cp -a vendor/* "$VENDOR_OUT/"
+fi
+
+# ------------------------------------------------------------------------------
+# 7. Configure Camera System Properties
+# ------------------------------------------------------------------------------
+PROP_FILE=""
+if [ -n "$SYSTEM_EXT_OUT" ] && [ -f "${SYSTEM_EXT_OUT}/etc/build.prop" ]; then
+  PROP_FILE="${SYSTEM_EXT_OUT}/etc/build.prop"
+elif [ -f "${SYSTEM_OUT}/build.prop" ]; then
+  PROP_FILE="${SYSTEM_OUT}/build.prop"
+elif [ -n "$PRODUCT_OUT" ] && [ -f "${PRODUCT_OUT}/etc/build.prop" ]; then
+  PROP_FILE="${PRODUCT_OUT}/etc/build.prop"
+fi
+
+if [ -n "$PROP_FILE" ] && [ -f "$PROP_FILE" ]; then
+  ui_print "  - Configuring device camera system properties..."
+  echo "" >> "$PROP_FILE"
+  echo "# Motorola Camera 4 Suite Properties" >> "$PROP_FILE"
+
+  if [ -f "$TMP/motocamera.prop" ]; then
+    while IFS='=' read -r key val || [ -n "$key" ]; do
+      case "$key" in
+        \#*|"") continue ;;
+        ro.motocamera.*) continue ;;
+      esac
+      clean_key=$(echo "$key" | tr -d ' \r\t')
+      clean_val=$(echo "$val" | tr -d '\r')
+      if [ -n "$clean_key" ] && [ -n "$clean_val" ]; then
+        if ! grep -q "^${clean_key}=" "$PROP_FILE" 2>/dev/null; then
+          echo "${clean_key}=${clean_val}" >> "$PROP_FILE"
+        fi
+      fi
+    done < "$TMP/motocamera.prop"
+  fi
+
+  # Fallback: ensure auxiliary cameras are exposed
+  if ! grep -q "persist.vendor.camera.expose.aux" "$PROP_FILE" 2>/dev/null; then
+    echo "persist.vendor.camera.expose.aux=1" >> "$PROP_FILE"
+  fi
+fi
+
+# ------------------------------------------------------------------------------
+# 8. Set File Permissions and SELinux Security Contexts
+# ------------------------------------------------------------------------------
+ui_print "Applying SELinux security contexts and permissions..."
+
+# addon.d script
+chmod 0755 "$SYSTEM_OUT/addon.d/30-motocamera.sh" 2>/dev/null || true
+set_con system_file "$SYSTEM_OUT/addon.d/30-motocamera.sh"
+
+# Product files
+if [ -n "$PRODUCT_OUT" ] && [ -d "$PRODUCT_OUT" ]; then
+  for d in "$PRODUCT_OUT/priv-app/MotCamera4" "$PRODUCT_OUT/app/MotCamera3AI"; do
+    if [ -d "$d" ]; then
+      chmod -R 0755 "$d" 2>/dev/null || true
+      find "$d" -type f -exec chmod 0644 {} + 2>/dev/null || true
+      find "$d" -exec chcon u:object_r:system_file:s0 {} + 2>/dev/null || true
+    fi
+  done
+  for f in "$PRODUCT_OUT/etc/permissions/"*com.motorola.camera3* \
+           "$PRODUCT_OUT/etc/sysconfig/"*com.motorola.camera3* \
+           "$PRODUCT_OUT/etc/init/"*motcamera* \
+           "$PRODUCT_OUT/etc/MotoDesktopAppConfig/"*; do
+    [ -f "$f" ] && chmod 0644 "$f" 2>/dev/null && set_con system_file "$f"
+  done
+fi
+
+# System_ext files
+if [ -n "$SYSTEM_EXT_OUT" ] && [ -d "$SYSTEM_EXT_OUT" ]; then
+  # Apps
+  for d in "$SYSTEM_EXT_OUT/priv-app/ImagerTuning"* "$SYSTEM_EXT_OUT/priv-app/MotCameraDesktop"; do
+    if [ -d "$d" ]; then
+      chmod -R 0755 "$d" 2>/dev/null || true
+      find "$d" -type f -exec chmod 0644 {} + 2>/dev/null || true
+      find "$d" -exec chcon u:object_r:system_file:s0 {} + 2>/dev/null || true
+    fi
+  done
+
+  # Frameworks and permissions
+  for f in "$SYSTEM_EXT_OUT/framework/"*com.motorola.* \
+           "$SYSTEM_EXT_OUT/etc/permissions/"*motorola* \
+           "$SYSTEM_EXT_OUT/etc/permissions/"*imager* \
+           "$SYSTEM_EXT_OUT/etc/permissions/"*camera* \
+           "$SYSTEM_EXT_OUT/etc/public.libraries-"* \
+           "$SYSTEM_EXT_OUT/etc/sysconfig/"*; do
+    [ -f "$f" ] && chmod 0644 "$f" 2>/dev/null && set_con system_file "$f"
+  done
+
+  # System_ext native libraries (system_lib_file context is mandatory)
+  for libdir in "$SYSTEM_EXT_OUT/lib64" "$SYSTEM_EXT_OUT/lib"; do
+    if [ -d "$libdir" ]; then
+      for f in "$libdir"/libarcsoft* "$libdir"/libcamera* "$libdir"/libimgTuner* \
+               "$libdir"/libjni_helper* "$libdir"/libopencv* "$libdir"/motorola.hardware.camera*; do
+        [ -f "$f" ] && chmod 0644 "$f" 2>/dev/null && set_con system_lib_file "$f"
+      done
+    fi
+  done
+fi
+
+# System framework and system libraries
+for f in "$SYSTEM_OUT/framework/com.motorola.motosignature.jar" \
+         "$SYSTEM_OUT/framework/moto-core_services.jar" \
+         "$SYSTEM_OUT/framework/moto-settings.jar" \
+         "$SYSTEM_OUT/etc/permissions/com.motorola.motosignature.xml" \
+         "$SYSTEM_OUT/etc/permissions/moto-core_services.xml" \
+         "$SYSTEM_OUT/etc/permissions/moto-settings.xml"; do
+  [ -f "$f" ] && chmod 0644 "$f" 2>/dev/null && set_con system_file "$f"
+done
+
+for libdir in "$SYSTEM_OUT/lib64" "$SYSTEM_OUT/lib"; do
+  if [ -d "$libdir" ]; then
+    for f in "$libdir"/motorola.hardware.camera*; do
+      [ -f "$f" ] && chmod 0644 "$f" 2>/dev/null && set_con system_lib_file "$f"
+    done
+  fi
+done
+
+# Vendor partition files
+if [ -n "$VENDOR_OUT" ] && [ -d "$VENDOR_OUT" ]; then
+  for f in "$VENDOR_OUT/bin/hw/motorola.hardware.camera."*; do
+    [ -f "$f" ] && chmod 0755 "$f" 2>/dev/null && set_con vendor_file "$f"
+  done
+  for f in "$VENDOR_OUT/etc/init/motorola.hardware.camera."* "$VENDOR_OUT/etc/vintf/manifest/"*; do
+    [ -f "$f" ] && chmod 0644 "$f" 2>/dev/null && set_con vendor_file "$f"
+  done
+  for libdir in "$VENDOR_OUT/lib64" "$VENDOR_OUT/lib" "$VENDOR_OUT/lib64/hw" "$VENDOR_OUT/lib/hw"; do
+    if [ -d "$libdir" ]; then
+      for f in "$libdir"/motorola.hardware.camera.* "$libdir"/libmot_chi_desktop_helper*; do
+        [ -f "$f" ] && chmod 0644 "$f" 2>/dev/null && set_con vendor_file "$f"
+      done
+    fi
+  done
+fi
+
+# ------------------------------------------------------------------------------
+# 9. Completion & Cleanup
+# ------------------------------------------------------------------------------
+cleanup
+
+ui_print "=================================================="
+ui_print "  Installation Successful!                       "
+if [ -n "$MOTO_MODEL" ]; then
+  ui_print "  Moto Camera 4 is active for $MOTO_MODEL.       "
+else
+  ui_print "  Moto Camera 4 is ready to use.                 "
+fi
+ui_print "=================================================="
+exit 0
