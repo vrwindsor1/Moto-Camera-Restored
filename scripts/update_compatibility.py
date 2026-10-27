@@ -3,7 +3,7 @@
 update_compatibility.py
 Automatically parses the LineageOS Wiki dataset to extract all Motorola devices,
 identifies active maintainer status, infers native camera generations, checks
-community test reports in reports/, and generates a comprehensive COMPATIBILITY.md matrix.
+community test reports in reports/, and generates a comprehensive COMPATIBILITY.md table.
 """
 
 import os
@@ -139,7 +139,7 @@ def ensure_device_report_files(devices, reports_dir="reports"):
         report_content = f"""# Device Report: {combined_names} (`{codename}`)
 
 <p align="center">
-  <a href="../COMPATIBILITY.md"><img src="https://img.shields.io/badge/⬅%20Back%20to-Per--Device%20Compatibility%20Matrix-blue?style=flat-square" alt="Per-Device Compatibility Matrix"></a>
+  <a href="../COMPATIBILITY.md"><img src="https://img.shields.io/badge/⬅%20Back%20to-Per--Device%20Compatibility%20Table-blue?style=flat-square" alt="Per-Device Compatibility Table"></a>
   <a href="https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=compatibility_report.yml"><img src="https://img.shields.io/badge/Submit-New%20Report-success?style=flat-square&logo=github" alt="Submit Report"></a>
   <a href="../LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square" alt="License"></a>
 </p>
@@ -164,7 +164,7 @@ def ensure_device_report_files(devices, reports_dir="reports"):
 ---
 
 <p align="center">
-  <a href="../COMPATIBILITY.md">⬅ Back to Per-Device Compatibility Matrix</a> &bull; <a href="../README.md">Installer Documentation</a>
+  <a href="../COMPATIBILITY.md">⬅ Back to Per-Device Compatibility Table</a> &bull; <a href="../README.md">Installer Documentation</a>
 </p>
 """
         with open(report_file, 'w', encoding='utf-8') as f:
@@ -179,7 +179,7 @@ def generate_markdown(devices, output_file, reports_dir="reports"):
 
     now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
 
-    content = f"""# Per-Device Compatibility Matrix
+    content = f"""# Per-Device Compatibility Table
 
 > **Automatic Sync:** This table is automatically generated and synchronized with the official [LineageOS Wiki](https://github.com/LineageOS/lineage_wiki) repository via GitHub Actions.  
 > **Last Updated:** `{now_utc}`  

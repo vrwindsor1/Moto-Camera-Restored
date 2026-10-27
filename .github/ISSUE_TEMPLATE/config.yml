@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: "Per-Device Compatibility Matrix & Reports"
+  - name: "Per-Device Compatibility Table & Reports"
     url: "https://github.com/vrwindsor1/Moto-Camera-Restored/blob/main/COMPATIBILITY.md"
     about: "View the community-maintained per-device compatibility table and testing instructions in COMPATIBILITY.md."

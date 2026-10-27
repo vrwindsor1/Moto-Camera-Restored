@@ -48,11 +48,11 @@ Whether you run **LineageOS**, **crDroid**, **PixelOS**, **DerpFest**, or **Havo
 
 ---
 
-## 📱 Per-Device Compatibility Matrix
+## 📱 Per-Device Compatibility Table
 
-We automatically track and synchronize our per-device compatibility matrix with the official LineageOS Wiki.
+We automatically track and synchronize our per-device compatibility table with the official LineageOS Wiki.
 
-👉 **[View the Per-Device Compatibility Matrix](COMPATIBILITY.md)**  
+👉 **[View the Per-Device Compatibility Table](COMPATIBILITY.md)**  
 📝 **[Submit a Compatibility Report](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=compatibility_report.yml)**
 
 ### 📷 Camera Generation Compatibility Status
@@ -198,7 +198,7 @@ This repository includes a dedicated GitHub Action ([`.github/workflows/update-d
 1. Automatically monitors the [`LineageOS/lineage_wiki`](https://github.com/LineageOS/lineage_wiki) repository weekly.
 2. Extracts metadata for all 90+ Motorola devices in the LineageOS ecosystem.
 3. Detects active maintainers, branch updates, and chipset configurations.
-4. Automatically regenerates and commits changes to the [Per-Device Compatibility Matrix](COMPATIBILITY.md).
+4. Automatically regenerates and commits changes to the [Per-Device Compatibility Table](COMPATIBILITY.md).
 
 ---
 
@@ -206,7 +206,7 @@ This repository includes a dedicated GitHub Action ([`.github/workflows/update-d
 
 Contributions, device bug reports, and pull requests are welcome!
 * If a specific auxiliary lens or camera mode fails on your device, please open an **Issue** with logcat output (`adb logcat -s MotoCamera:V CameraManager:V`).
-* If you have tested a combination on a device listed in the [Per-Device Compatibility Matrix](COMPATIBILITY.md), feel free to submit a PR updating test notes.
+* If you have tested a combination on a device listed in the [Per-Device Compatibility Table](COMPATIBILITY.md), feel free to submit a PR updating test notes.
 
 ---
 

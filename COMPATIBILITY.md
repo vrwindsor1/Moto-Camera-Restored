@@ -1,4 +1,4 @@
-# Per-Device Compatibility Matrix
+# Per-Device Compatibility Table
 
 > **Automatic Sync:** This table is automatically generated and synchronized with the official [LineageOS Wiki](https://github.com/LineageOS/lineage_wiki) repository via GitHub Actions.  
 > **Last Updated:** `2026-10-27 16:50:00 UTC`  
