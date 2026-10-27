@@ -206,7 +206,7 @@ This repository includes a dedicated GitHub Action ([`.github/workflows/update-d
 
 Contributions, device bug reports, and pull requests are welcome!
 * If a specific auxiliary lens or camera mode fails on your device, please open an **Issue** with logcat output (`adb logcat -s MotoCamera:V CameraManager:V`).
-* If you have tested a combination on a device listed in the [Per-Device Compatibility Table](COMPATIBILITY.md), feel free to submit a PR updating test notes.
+* If you have tested a combination on a device listed in the [Per-Device Compatibility Table](COMPATIBILITY.md), feel free to submit a [Compatibility Report](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=compatibility_report.yml).
 
 ---
 
