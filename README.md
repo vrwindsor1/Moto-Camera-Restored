@@ -8,7 +8,7 @@
   <a href="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml"><img src="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml/badge.svg?style=flat-square" alt="LineageOS Device Sync"></a>
 </p>
 
-An all-in-one universal recovery package compiler that extracts Motorola Camera suites (**Moto Camera 2, 3, 4, and 5**), companion AI services, vendor hardware abstraction layers (HALs), and multi-camera tuning libraries directly from official Motorola stock firmware and packages them into **flashable zip packages for recovery sideload** on custom ROMs (Android 13+).
+An all-in-one universal recovery package compiler that extracts Motorola Camera suites (**Moto Camera 2, 3, 4, and 5**), companion AI services, vendor hardware abstraction layers (HALs), and multi-camera tuning libraries directly from official Motorola stock firmware and packages them into **flashable zip packages for recovery sideload** on custom ROMs.
 
 ---
 
