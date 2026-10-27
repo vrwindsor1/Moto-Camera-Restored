@@ -126,13 +126,3 @@ These devices previously received official LineageOS builds but are no longer ac
 
 </details>
 
----
-
-## 🔍 Native Restoration Philosophy
-The primary goal of **Moto Camera Restored** is to restore the **original, native camera stack** that each device shipped with—**not** to cross-port an incompatible newer camera generation onto older hardware:
-* **Moto Camera 2 Era Devices:** Devices that originally shipped with Android 7–9 ran `com.motorola.camera2` (e.g., `payton`, `lake`, `nash`). The toolkit restores their native **MotCamera 2** suite and HAL services adapted for modern LineageOS.
-* **Moto Camera 3 Era Devices:** Devices that launched with Moto Camera 3 (e.g., `nio`, `kiev`, `guamp`) receive their native **MotCamera 3** recovery suite.
-* **Moto Camera 4 Era Devices:** Devices built for Moto Camera 4 (e.g., `dubai`, `miami`, `rhode`) receive their native **MotCamera 4** recovery suite.
-* **Moto Camera 5 Era Devices:** Newer devices utilizing Moto Camera 5 (e.g., `rtwo`, `avatrn`, `genevn`) receive their native **MotCamera 5** recovery suite.
-* **Hardware Fidelity:** Restoring the native suite ensures complete ISP calibration integrity, auxiliary sensor switching, and hardware features without cross-porting bugs.
-* **OTA Survival:** Every compiled package installs an `addon.d` backup script into the system partition to survive weekly LineageOS updates without re-sideloading.
