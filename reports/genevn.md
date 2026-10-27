@@ -21,7 +21,7 @@
 
 | Report | Compiler | Custom ROM | Stock Firmware | Outcome | Tested Features / Notes |
 | :--- | :---: | :--- | :--- | :---: | :--- |
-| [#3](https://github.com/vrwindsor1/Universal_MotCamera4Suite_Installer/issues/3) by [@vrwindsor1](https://github.com/vrwindsor1) | `.sh` | LineageOS (Android 17) | U1TGNS34.42_86_2_38 (RSA stock Android 14 dump) | 🟢 Works Perfectly | Working: Main Camera, Ultrawide, Macro, Front Selfie, Ultra-Res, Video 4K, Slow Motion, Portrait, Pro |
+| [#3](https://github.com/vrwindsor1/Universal_MotCamera4Suite_Installer/issues/3) by [@vrwindsor1](https://github.com/vrwindsor1) | `.sh` | LineageOS 22.2 (Android 15) | U1TGNS34.42_86_2_38 | 🟢 Works Perfectly | Working: Main Camera, Ultrawide, Macro, Front Selfie, Ultra-Res, Video 4K, Slow Motion, Portrait, Pro |
 
 ---
 

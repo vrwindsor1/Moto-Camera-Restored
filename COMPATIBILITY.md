@@ -1,7 +1,7 @@
 # Device Compatibility Matrix
 
 > **Automatic Sync:** This table is automatically generated and synchronized with the official [LineageOS Wiki](https://github.com/LineageOS/lineage_wiki) repository via GitHub Actions.  
-> **Last Updated:** `2026-10-27 16:28:55 UTC`  
+> **Last Updated:** `2026-10-27 16:37:56 UTC`  
 > **Total Motorola Devices Tracked:** `97` (`61` actively maintained, `36` discontinued)
 
 ---

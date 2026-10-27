@@ -159,8 +159,19 @@ def main():
     fields = parse_issue_form(issue_body)
     print("Parsed Fields:", list(fields.keys()))
 
-    device_name = clean_cell(fields.get("Device Marketing Name", ""))
-    codename = clean_cell(fields.get("Device Codename", ""))
+    device_combined = clean_cell(fields.get("Device (Marketing Name & Codename)", ""))
+    if device_combined and device_combined != "—":
+        m = re.match(r"^(.*?)\s*\(([^()]+)\)$", device_combined)
+        if m:
+            device_name = clean_cell(m.group(1))
+            codename = clean_cell(m.group(2))
+        else:
+            device_name = device_combined
+            codename = device_combined
+    else:
+        device_name = clean_cell(fields.get("Device Marketing Name", ""))
+        codename = clean_cell(fields.get("Device Codename", ""))
+
     model = clean_cell(fields.get("Device Model Number", ""))
     camera_gen_raw = fields.get("Stock Camera Era Restored", "")
     camera_gen = clean_cell(camera_gen_raw.split(" (")[0]) if camera_gen_raw else "—"

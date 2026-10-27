@@ -250,17 +250,42 @@ These devices previously received official LineageOS builds but are no longer ac
         f.write(content)
     print(f"Successfully generated {output_file} with {len(devices)} devices.")
 
+def update_issue_template(devices, template_file=".github/ISSUE_TEMPLATE/compatibility_report.yml"):
+    if not os.path.exists(template_file):
+        return
+
+    with open(template_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    unique_devices = {}
+    for d in devices:
+        key = (d['name'], d['codename'])
+        unique_devices[key] = True
+
+    sorted_devs = sorted(unique_devices.keys(), key=lambda x: x[0].lower())
+    option_lines = [f'        - "{name} ({codename})"' for name, codename in sorted_devs]
+    new_options_block = "\n".join(option_lines)
+
+    pattern = r'(id:\s*device\s*\n\s*attributes:\s*\n\s*label:\s*[^\n]+\n\s*description:\s*[^\n]+\n\s*options:\s*\n)(?:[ \t]*- [^\n]+\n)+'
+    if re.search(pattern, content):
+        updated_content = re.sub(pattern, r'\g<1>' + new_options_block + '\n', content)
+        with open(template_file, "w", encoding="utf-8") as f:
+            f.write(updated_content)
+        print(f"Successfully updated device dropdown options in {template_file}.")
+
 def main():
     parser = argparse.ArgumentParser(description="Update COMPATIBILITY.md from LineageOS Wiki data")
     parser.add_argument("--wiki-path", default="/tmp/lineage_wiki", help="Path to cloned lineage_wiki repository")
     parser.add_argument("--output", default="COMPATIBILITY.md", help="Output Markdown path")
     parser.add_argument("--reports-dir", default="reports", help="Directory where device report markdown files reside")
+    parser.add_argument("--issue-template", default=".github/ISSUE_TEMPLATE/compatibility_report.yml", help="Path to compatibility issue template")
     args = parser.parse_args()
 
     devices_dir = os.path.join(args.wiki_path, "_data", "devices")
     devices = parse_lineage_devices(devices_dir)
     ensure_device_report_files(devices, args.reports_dir)
     generate_markdown(devices, args.output, args.reports_dir)
+    update_issue_template(devices, args.issue_template)
 
 if __name__ == '__main__':
     main()

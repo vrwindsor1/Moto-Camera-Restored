@@ -1,6 +1,6 @@
 name: "Device Compatibility Report"
 description: "Report test results for your Motorola device and custom ROM"
-title: "[Compatibility]: <Device Name> (<Codename>)"
+title: "[Compatibility]: "
 labels: ["compatibility", "triage"]
 body:
   - type: markdown
@@ -25,30 +25,109 @@ body:
     validations:
       required: true
 
-  - type: input
-    id: device_name
+  - type: dropdown
+    id: device
     attributes:
-      label: Device Marketing Name
-      description: "Official device marketing name (e.g., Moto G Stylus 5G (2023), Motorola Edge 40 Pro, Razr+ 2024)."
-      placeholder: "e.g. Moto G Stylus 5G (2023)"
-    validations:
-      required: true
-
-  - type: input
-    id: device_codename
-    attributes:
-      label: Device Codename
-      description: "Internal board codename (e.g., genevn, rtwo, manaus, bronco, eqs, devon)."
-      placeholder: "e.g. genevn"
-    validations:
-      required: true
-
-  - type: input
-    id: device_model
-    attributes:
-      label: Device Model Number
-      description: "Specific hardware SKU / Model # (found in Settings > About Phone, fastboot getvar product, or box)."
-      placeholder: "e.g. XT2315-1, XT2301-4, XT2417-1"
+      label: Device (Marketing Name & Codename)
+      description: "Select your Motorola device from the list."
+      options:
+        - "defy 2021 (bathena)"
+        - "DROID 4 (maserati)"
+        - "DROID BIONIC (targa)"
+        - "DROID RAZR (CDMA) (spyder)"
+        - "DROID RAZR (GSM) (umts_spyder)"
+        - "DROID RAZR MAXX (CDMA) (spyder)"
+        - "DROID RAZR MAXX (GSM) (umts_spyder)"
+        - "edge (racer)"
+        - "edge 20 (berlin)"
+        - "edge 20 pro (pstar)"
+        - "edge 2021 (berlna)"
+        - "edge 2024 (avatrn)"
+        - "edge 30 (dubai)"
+        - "edge 30 fusion (tundra)"
+        - "edge 30 neo (miami)"
+        - "edge 30 ultra (eqs)"
+        - "edge 40 neo (manaus)"
+        - "edge 40 pro (rtwo)"
+        - "edge s (nio)"
+        - "Edge S30 (xpeng)"
+        - "edge+ (2023) (rtwo)"
+        - "moto e (condor)"
+        - "moto e (2015) (otus)"
+        - "moto e LTE (2015) (surnia)"
+        - "moto e5 plus (XT1924-1/2/4/5) (rhannah)"
+        - "moto e5 plus (XT1924-3/9) (ahannah)"
+        - "moto e5 plus (XT1924-6/7/8) (hannah)"
+        - "moto e7 plus (guam)"
+        - "moto g (falcon)"
+        - "moto g (2014) (titan)"
+        - "moto g (2015) (osprey)"
+        - "moto g 4G (peregrine)"
+        - "moto g 5G (kiev)"
+        - "moto g 5G - 2024 (fogo)"
+        - "moto g 5G plus (nairo)"
+        - "moto g LTE (2014) (thea)"
+        - "moto g play (2021) (guamna)"
+        - "moto g power 2021 (borneo)"
+        - "moto g pure (ellis)"
+        - "moto g stylus 5G (denver)"
+        - "moto g stylus 5G (2022) (milanf)"
+        - "moto g stylus 5G (2023) (genevn)"
+        - "moto g05 (lamu)"
+        - "moto g10 (capri)"
+        - "moto g10 power (capri)"
+        - "moto g100 (nio)"
+        - "moto g15 (lamu)"
+        - "moto g15 power (lamu)"
+        - "moto g200 5G (xpeng)"
+        - "moto g3 turbo (merlin)"
+        - "moto g30 (caprip)"
+        - "moto g32 (devon)"
+        - "moto g34 5G (fogos)"
+        - "moto g4 (athene)"
+        - "moto g4 play (harpia)"
+        - "moto g42 (hawao)"
+        - "moto g45 5G (fogos)"
+        - "moto g5 (cedric)"
+        - "moto g50 (ibiza)"
+        - "moto g52 (rhode)"
+        - "moto g5s (montana)"
+        - "moto g6 plus (evert)"
+        - "moto g7 (river)"
+        - "moto g7 play (channel)"
+        - "moto g7 plus (lake)"
+        - "moto g7 power (ocean)"
+        - "moto g82 5G (rhodep)"
+        - "moto g84 5G (bangkk)"
+        - "moto g9 (guamp)"
+        - "moto g9 play (guamp)"
+        - "moto g9 power (cebu)"
+        - "moto one 5G (nairo)"
+        - "moto one 5G ace (kiev)"
+        - "moto S30 Pro (tundra)"
+        - "moto x (ghost)"
+        - "moto x (2014) (victara)"
+        - "moto x play (lux)"
+        - "moto x pure edition (2015) (clark)"
+        - "moto x style (2015) (clark)"
+        - "moto x4 (payton)"
+        - "moto X40 (rtwo)"
+        - "moto z (griffin)"
+        - "moto z (2018) (nash)"
+        - "moto z play (addison)"
+        - "moto z2 force (nash)"
+        - "moto z2 play (albus)"
+        - "moto z3 (messi)"
+        - "moto z3 play (beckham)"
+        - "one action (troika)"
+        - "one fusion+ (liber)"
+        - "one fusion+ (India) (liber)"
+        - "one power (chef)"
+        - "one vision (kane)"
+        - "one zoom (parker)"
+        - "p50 (kane)"
+        - "PHOTON Q 4G LTE (xt897)"
+        - "ThinkPhone by motorola (bronco)"
     validations:
       required: true
 
