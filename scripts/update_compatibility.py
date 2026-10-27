@@ -35,7 +35,7 @@ def infer_camera_generation(device):
     soc = str(device.get('soc', '')).lower()
 
     if codename in CAM2_CODENAMES:
-        return "Moto Camera 2", "MotCamera 3 / 4 Recovery Suite"
+        return "Moto Camera 2", "MotCamera 2 / 3 Recovery Suite"
     if codename in CAM5_CODENAMES:
         return "Moto Camera 5", "MotCamera 5 Recovery Suite"
     if codename in CAM3_CODENAMES:
@@ -54,7 +54,7 @@ def infer_camera_generation(device):
     elif year >= 2019:
         return "Moto Camera 3", "MotCamera 3 / 4 Recovery Suite"
     else:
-        return "Moto Camera 2", "MotCamera 3 Recovery Suite"
+        return "Moto Camera 2", "MotCamera 2 / 3 Recovery Suite"
 
 def parse_lineage_devices(devices_dir):
     devices = []
@@ -166,9 +166,9 @@ These devices previously received official LineageOS builds but are no longer ac
 ---
 
 ## 🔍 How Recommendations Work
-* **Moto Camera 2 Era Devices:** Devices that originally shipped with Android 7–9 ran `com.motorola.camera2`. On modern LineageOS (Android 13/14+), Moto Camera 2 is broken due to deprecated HALs. Compiling a recovery sideload package using the **MotCamera 3** or **MotCamera 4** suite restores modern camera features with auxiliary sensor support.
+* **Moto Camera 2 Era Devices:** Devices that originally shipped with Android 7–9 ran `com.motorola.camera2`. Moto Camera Restored aims to provide both a native **MotCamera 2 Recovery Suite** adapted for modern Android as well as modern **MotCamera 3 / 4** alternative packages for enhanced auxiliary sensor support.
 * **Moto Camera 3 & 4 Era Devices:** Devices shipping with modern multi-lens arrays (ultrawide, macro, telephoto) lose vendor post-processing when flashing custom ROMs. The compiled recovery package restores Moto camera algorithms, physical lens switching, and system permissions into the ROM partition.
-* **Moto Camera 5 Era Devices:** High-end and recent 2023–2025 devices utilize Moto's newer AI pipelines requiring the **MotCamera 5** recovery package.
+* **Moto Camera 5 Era Devices:** High-end and recent 2023–2025 devices utilize Moto's newer AI pipelines requiring the **MotCamera 5 Recovery Suite**.
 * **OTA Survival:** Every compiled package installs an `addon.d` backup script into the system partition to survive weekly LineageOS updates without re-sideloading.
 """
 

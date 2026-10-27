@@ -1,7 +1,7 @@
 # Device Compatibility Matrix
 
 > **Automatic Sync:** This table is automatically generated and synchronized with the official [LineageOS Wiki](https://github.com/LineageOS/lineage_wiki) repository via GitHub Actions.  
-> **Last Updated:** `2026-10-27 15:26:14 UTC`  
+> **Last Updated:** `2026-10-27 15:26:59 UTC`  
 > **Total Motorola Devices Tracked:** `97` (`61` actively maintained, `36` discontinued)
 
 ---
@@ -52,11 +52,11 @@ All packages are compiled into **recovery sideload flashable zips** (`adb sidelo
 | **moto g45 5G** | `fogos` | 24.0 | Qualcomm SM6375-AC Snapdragon 6s Gen 3 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | mikeioannina |
 | **moto g50** | `ibiza` | 24.0 | Qualcomm SM4350 Snapdragon 480 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Onelots |
 | **moto g52** | `rhode` | 24.0 | Qualcomm SM6225 Snapdragon 680 4G | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | Dhina17, mikeioannina, tomoms, Deivid Ignacio Parra (Deivid21) |
-| **moto g6 plus** | `evert` | 22.2 | Qualcomm SDM630 Snapdragon 630 | Moto Camera 2 | `MotCamera 3 / 4 Recovery Suite` | jro1979 |
-| **moto g7** | `river` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 3 / 4 Recovery Suite` | erfanoabdi, npjohnson, SyberHexen |
-| **moto g7 play** | `channel` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 3 / 4 Recovery Suite` | SyberHexen, deadman96385, erfanoabdi, npjohnson |
-| **moto g7 plus** | `lake` | 22.2 | Qualcomm SDM636 Snapdragon 636 | Moto Camera 2 | `MotCamera 3 / 4 Recovery Suite` | jro1979, npjohnson |
-| **moto g7 power** | `ocean` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 3 / 4 Recovery Suite` | SyberHexen, erfanoabdi, npjohnson |
+| **moto g6 plus** | `evert` | 22.2 | Qualcomm SDM630 Snapdragon 630 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | jro1979 |
+| **moto g7** | `river` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | erfanoabdi, npjohnson, SyberHexen |
+| **moto g7 play** | `channel` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | SyberHexen, deadman96385, erfanoabdi, npjohnson |
+| **moto g7 plus** | `lake` | 22.2 | Qualcomm SDM636 Snapdragon 636 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | jro1979, npjohnson |
+| **moto g7 power** | `ocean` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | SyberHexen, erfanoabdi, npjohnson |
 | **moto g82 5G** | `rhodep` | 24.0 | Qualcomm SM6375 Snapdragon 695 | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | AnandSuresh02, sevenrock |
 | **moto g84 5G** | `bangkk` | 24.0 | Qualcomm SM6375 Snapdragon 695 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | mikeioannina |
 | **moto g9** | `guamp` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | DelightReza, Deivid Ignacio Parra (Deivid21) |
@@ -65,12 +65,12 @@ All packages are compiled into **recovery sideload flashable zips** (`adb sidelo
 | **moto one 5G** | `nairo` | 23.2 | Qualcomm SM7250 Snapdragon 765G | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | ItsVixano, Ivanmeler, SyberHexen, zlewchan |
 | **moto one 5G ace** | `kiev` | 23.2 | Qualcomm SM7225 Snapdragon 750G | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | basamaryan, SyberHexen, Vivekachooz |
 | **moto S30 Pro** | `tundra` | 24.0 | Qualcomm SM8350-AC Snapdragon 888+ | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | themard, electimon, npjohnson |
-| **moto x4** | `payton` | 22.2 | Qualcomm SDM630 Snapdragon 630 | Moto Camera 2 | `MotCamera 3 / 4 Recovery Suite` | erfanoabdi, ThEMarD, electimon |
+| **moto x4** | `payton` | 22.2 | Qualcomm SDM630 Snapdragon 630 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | erfanoabdi, ThEMarD, electimon |
 | **moto X40** | `rtwo` | 24.0 | Qualcomm SM8550 Snapdragon 8 Gen2 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | sgcmarkus, themard |
-| **moto z (2018)** | `nash` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 3 / 4 Recovery Suite` | erfanoabdi, npjohnson, qsnc |
-| **moto z2 force** | `nash` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 3 / 4 Recovery Suite` | erfanoabdi, npjohnson, qsnc |
-| **moto z3** | `messi` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 3 / 4 Recovery Suite` | npjohnson |
-| **moto z3 play** | `beckham` | 22.2 | Qualcomm SDM636 Snapdragon 636 | Moto Camera 2 | `MotCamera 3 / 4 Recovery Suite` | jro1979 |
+| **moto z (2018)** | `nash` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | erfanoabdi, npjohnson, qsnc |
+| **moto z2 force** | `nash` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | erfanoabdi, npjohnson, qsnc |
+| **moto z3** | `messi` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | npjohnson |
+| **moto z3 play** | `beckham` | 22.2 | Qualcomm SDM636 Snapdragon 636 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | jro1979 |
 | **one action** | `troika` | 24.0 | Samsung Exynos 9609 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Stricted, npjohnson, DaemonMCR |
 | **one vision** | `kane` | 24.0 | Samsung Exynos 9609 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Stricted, npjohnson, DaemonMCR |
 | **p50** | `kane` | 24.0 | Samsung Exynos 9609 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Stricted, npjohnson, DaemonMCR |
@@ -129,7 +129,7 @@ These devices previously received official LineageOS builds but are no longer ac
 ---
 
 ## 🔍 How Recommendations Work
-* **Moto Camera 2 Era Devices:** Devices that originally shipped with Android 7–9 ran `com.motorola.camera2`. On modern LineageOS (Android 13/14+), Moto Camera 2 is broken due to deprecated HALs. Compiling a recovery sideload package using the **MotCamera 3** or **MotCamera 4** suite restores modern camera features with auxiliary sensor support.
+* **Moto Camera 2 Era Devices:** Devices that originally shipped with Android 7–9 ran `com.motorola.camera2`. Moto Camera Restored aims to provide both a native **MotCamera 2 Recovery Suite** adapted for modern Android as well as modern **MotCamera 3 / 4** alternative packages for enhanced auxiliary sensor support.
 * **Moto Camera 3 & 4 Era Devices:** Devices shipping with modern multi-lens arrays (ultrawide, macro, telephoto) lose vendor post-processing when flashing custom ROMs. The compiled recovery package restores Moto camera algorithms, physical lens switching, and system permissions into the ROM partition.
-* **Moto Camera 5 Era Devices:** High-end and recent 2023–2025 devices utilize Moto's newer AI pipelines requiring the **MotCamera 5** recovery package.
+* **Moto Camera 5 Era Devices:** High-end and recent 2023–2025 devices utilize Moto's newer AI pipelines requiring the **MotCamera 5 Recovery Suite**.
 * **OTA Survival:** Every compiled package installs an `addon.d` backup script into the system partition to survive weekly LineageOS updates without re-sideloading.
