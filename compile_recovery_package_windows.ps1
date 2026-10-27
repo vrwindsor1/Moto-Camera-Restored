@@ -16,7 +16,7 @@
 #
 # Usage:
 #   Interactive:  .\compile_recovery_package_windows.ps1
-#   CLI:          .\compile_recovery_package_windows.ps1 -FirmwarePath "C:\path\to\stock_firmware" [-OutputDir "C:\output"]
+#   CLI:          .\compile_recovery_package_windows.ps1 -FirmwarePath "C:\path\to\stock_firmware" [-OutputDir "C:\output"] [-TemplateDir "C:\path\to\templates"]
 # ==============================================================================
 
 [CmdletBinding()]
@@ -25,7 +25,10 @@ param(
     [string]$FirmwarePath,
 
     [Parameter(Position=1)]
-    [string]$OutputDir
+    [string]$OutputDir,
+
+    [Parameter(Position=2)]
+    [string]$TemplateDir
 )
 
 $ErrorActionPreference = "Stop"
@@ -102,22 +105,85 @@ function Get-BuildProp([string]$Key, [string[]]$PropFiles) {
 }
 
 # Modular Template Resolution
-function Ensure-Templates([string]$WorkDir, [string]$CameraGen, [string]$GenName) {
+function Ensure-Templates([string]$WorkDir, [string]$CameraGen, [string]$GenName, [string]$CliTemplate) {
+    # 1. CLI-specified directory
+    if ($CliTemplate) {
+        $cleanCli = $CliTemplate.Trim().Trim('"').Trim("'")
+        if (Test-Path $cleanCli) {
+            $resolvedCli = (Resolve-Path $cleanCli).Path
+            $candidatePath = $null
+            if (Test-Path (Join-Path $resolvedCli "META-INF\com\google\android\update-binary")) {
+                $candidatePath = $resolvedCli
+            } elseif (Test-Path (Join-Path $resolvedCli "$CameraGen\META-INF\com\google\android\update-binary")) {
+                $candidatePath = Join-Path $resolvedCli $CameraGen
+            } elseif (Test-Path (Join-Path $resolvedCli "templates\$CameraGen\META-INF\com\google\android\update-binary")) {
+                $candidatePath = Join-Path $resolvedCli "templates\$CameraGen"
+            }
+
+            if ($candidatePath) {
+                Log-Ok "Using CLI-specified recovery templates from: $candidatePath"
+                return $candidatePath
+            } else {
+                Log-Warn "CLI-specified template path '$cleanCli' does not contain required template files."
+            }
+        }
+    }
+
+    # 2. Local script directory check
     $localTemplatesDir = Join-Path $ScriptDir "templates\$CameraGen"
     if ((Test-Path $localTemplatesDir) -and (Test-Path (Join-Path $localTemplatesDir "META-INF\com\google\android\update-binary"))) {
-        Log-Ok "Using local recovery templates for $GenName ($CameraGen)."
+        Log-Ok "Found local recovery templates for $GenName ($CameraGen)."
         return $localTemplatesDir
     }
 
-    # Current working directory check
+    # 3. Current working directory check
     $cwdTemplatesDir = Join-Path (Get-Location) "templates\$CameraGen"
     if ((Test-Path $cwdTemplatesDir) -and (Test-Path (Join-Path $cwdTemplatesDir "META-INF\com\google\android\update-binary"))) {
-        Log-Ok "Using local recovery templates for $GenName ($CameraGen)."
+        Log-Ok "Found local recovery templates for $GenName ($CameraGen)."
         return $cwdTemplatesDir
     }
 
-    Log-Info "Local template for $GenName not found. Fetching from GitHub..."
-    $downloadDir = Join-Path $WorkDir "templates\$CameraGen"
+    # 4. Template folder not present in working directory -> Prompt the user
+    Log-Warn "Recovery template folder for $GenName ('templates\$CameraGen') was not found in working directory."
+    Write-Host ""
+    Write-Host "Please point to a local template directory, or press [Enter] to automatically download from GitHub:" -ForegroundColor White
+    $userTemplateInput = Read-Host "> Local template path [Enter to download]"
+    if ($userTemplateInput) {
+        $userTemplateInput = $userTemplateInput.Trim().Trim('"').Trim("'")
+    }
+
+    if ($userTemplateInput -and (Test-Path $userTemplateInput)) {
+        $resolvedUserPath = (Resolve-Path $userTemplateInput).Path
+        $candidatePath = $null
+        if (Test-Path (Join-Path $resolvedUserPath "META-INF\com\google\android\update-binary")) {
+            $candidatePath = $resolvedUserPath
+        } elseif (Test-Path (Join-Path $resolvedUserPath "$CameraGen\META-INF\com\google\android\update-binary")) {
+            $candidatePath = Join-Path $resolvedUserPath $CameraGen
+        } elseif (Test-Path (Join-Path $resolvedUserPath "templates\$CameraGen\META-INF\com\google\android\update-binary")) {
+            $candidatePath = Join-Path $resolvedUserPath "templates\$CameraGen"
+        }
+
+        if ($candidatePath) {
+            Log-Ok "Using user-specified recovery templates from: $candidatePath"
+            return $candidatePath
+        } else {
+            Log-Warn "Specified directory did not contain valid recovery templates for $GenName."
+            Log-Info "Proceeding with automatic download from GitHub..."
+        }
+    }
+
+    # 5. Remote download from GitHub repository
+    Log-Info "Downloading $GenName recovery templates from GitHub repository..."
+    $downloadDir = Join-Path (Get-Location) "templates\$CameraGen"
+    try {
+        if (-not (Test-Path $downloadDir)) {
+            New-Item -ItemType Directory -Path $downloadDir -Force | Out-Null
+        }
+    } catch {
+        $downloadDir = Join-Path $WorkDir "templates\$CameraGen"
+        New-Item -ItemType Directory -Path $downloadDir -Force | Out-Null
+    }
+
     New-Item -ItemType Directory -Path (Join-Path $downloadDir "META-INF\com\google\android") -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $downloadDir "addon.d") -Force | Out-Null
 
@@ -137,10 +203,26 @@ function Ensure-Templates([string]$WorkDir, [string]$CameraGen, [string]$GenName
         if (-not (Test-Path $parentDir)) { New-Item -ItemType Directory -Path $parentDir -Force | Out-Null }
         
         $url = "$GitHubRawBase/$file"
+        $fallbackUrl = $null
+        if ($CameraGen -eq "camera4") {
+            $fallbackUrl = "https://raw.githubusercontent.com/vrwindsor1/Universal_MotCamera4Suite_Installer/main/templates/recovery/" + $file.Replace("templates/$CameraGen/", "")
+        }
+
+        $dlOk = $false
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         try {
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
             Invoke-WebRequest -Uri $url -OutFile $destPath -UseBasicParsing
+            $dlOk = $true
         } catch {
+            if ($fallbackUrl) {
+                try {
+                    Invoke-WebRequest -Uri $fallbackUrl -OutFile $destPath -UseBasicParsing
+                    $dlOk = $true
+                } catch {}
+            }
+        }
+
+        if (-not $dlOk) {
             Log-Err "Failed to download required template file: $url"
             Write-Host ""
             Write-Host "[NOTE] The recovery template module '$CameraGen' ($GenName) is currently in development / not yet available." -ForegroundColor Yellow
@@ -150,7 +232,7 @@ function Ensure-Templates([string]$WorkDir, [string]$CameraGen, [string]$GenName
         }
     }
 
-    Log-Ok "Recovery scaffolding templates for $GenName downloaded successfully."
+    Log-Ok "Recovery templates for $GenName successfully downloaded to: $downloadDir"
     return $downloadDir
 }
 
@@ -359,7 +441,7 @@ New-Item -ItemType Directory -Path $StagingDir -Force | Out-Null
 New-Item -ItemType Directory -Path $RecBuildDir -Force | Out-Null
 
 try {
-    $TemplatesDir = Ensure-Templates $TempWorkDir $CameraGen $CameraGenName
+    $TemplatesDir = Ensure-Templates $TempWorkDir $CameraGen $CameraGenName $TemplateDir
 
     # 6. Harvest Camera Properties into motocamera.prop
     Log-Info "Harvesting device-specific multi-camera system properties..."

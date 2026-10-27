@@ -25,7 +25,7 @@
 #
 # Usage:
 #   Interactive:  ./compile_recovery_package_linux.sh
-#   CLI:          ./compile_recovery_package_linux.sh "/path/to/stock_firmware" [output_dir]
+#   CLI:          ./compile_recovery_package_linux.sh "/path/to/stock_firmware" [output_dir] [template_dir]
 # ==============================================================================
 
 set -eo pipefail
@@ -505,26 +505,93 @@ ensure_templates() {
   local target_work_dir="$1"
   local camera_gen="$2"
   local gen_name="$3"
+  local cli_template="$4"
+
+  # 1. Check CLI specified path if provided
+  if [ -n "$cli_template" ]; then
+    local cli_candidate=""
+    if [ -f "${cli_template}/META-INF/com/google/android/update-binary" ]; then
+      cli_candidate="$cli_template"
+    elif [ -f "${cli_template}/${camera_gen}/META-INF/com/google/android/update-binary" ]; then
+      cli_candidate="${cli_template}/${camera_gen}"
+    elif [ -f "${cli_template}/templates/${camera_gen}/META-INF/com/google/android/update-binary" ]; then
+      cli_candidate="${cli_template}/templates/${camera_gen}"
+    fi
+
+    if [ -n "$cli_candidate" ]; then
+      TEMPLATES_DIR="$(cd "$cli_candidate" && pwd)"
+      log_ok "Using CLI-specified recovery templates from: $TEMPLATES_DIR"
+      return 0
+    else
+      log_warn "CLI-specified template path '${cli_template}' does not contain required template files."
+    fi
+  fi
 
   local local_dir="${SCRIPT_DIR}/templates/${camera_gen}"
+  local cwd_dir="$(pwd)/templates/${camera_gen}"
 
-  # 1. Local repository path
+  # 2. Check local script directory path
   if [ -d "$local_dir" ] && [ -f "${local_dir}/META-INF/com/google/android/update-binary" ]; then
     TEMPLATES_DIR="$local_dir"
-    log_ok "Using local recovery templates for ${gen_name} (${camera_gen})."
+    log_ok "Found local recovery templates for ${gen_name} (${camera_gen})."
     return 0
   fi
 
-  # 2. Local current working directory path
-  if [ -d "./templates/${camera_gen}" ] && [ -f "./templates/${camera_gen}/META-INF/com/google/android/update-binary" ]; then
-    TEMPLATES_DIR="$(pwd)/templates/${camera_gen}"
-    log_ok "Using local recovery templates for ${gen_name} (${camera_gen})."
+  # 3. Check current working directory path
+  if [ -d "$cwd_dir" ] && [ -f "${cwd_dir}/META-INF/com/google/android/update-binary" ]; then
+    TEMPLATES_DIR="$cwd_dir"
+    log_ok "Found local recovery templates for ${gen_name} (${camera_gen})."
     return 0
   fi
 
-  # 3. Remote download from GitHub repository
-  log_info "Local template for ${gen_name} not found. Fetching from GitHub..."
-  TEMPLATES_DIR="${target_work_dir}/downloaded_templates/${camera_gen}"
+  # 4. Template folder not present in working directory -> Prompt the user
+  log_warn "Recovery template folder for ${gen_name} ('templates/${camera_gen}') was not found in working directory."
+
+  local user_input=""
+  echo ""
+  echo -e "${C_BOLD}Please point to a local template directory, or press [Enter] to automatically download from GitHub:${C_RESET}"
+  if [ -t 0 ]; then
+    read -e -p "> Local template path [Enter to download]: " user_input
+  else
+    read -r user_input || user_input=""
+  fi
+  user_input="$(echo "$user_input" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  while [[ "$user_input" =~ ^[\'\"](.*)[\'\"]$ ]]; do
+    user_input="${BASH_REMATCH[1]}"
+    user_input="$(echo "$user_input" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  done
+  user_input="${user_input/#\~/$HOME}"
+
+  if [ -n "$user_input" ]; then
+    local candidate_path=""
+    if [ -f "${user_input}/META-INF/com/google/android/update-binary" ]; then
+      candidate_path="$user_input"
+    elif [ -f "${user_input}/${camera_gen}/META-INF/com/google/android/update-binary" ]; then
+      candidate_path="${user_input}/${camera_gen}"
+    elif [ -f "${user_input}/templates/${camera_gen}/META-INF/com/google/android/update-binary" ]; then
+      candidate_path="${user_input}/templates/${camera_gen}"
+    fi
+
+    if [ -n "$candidate_path" ]; then
+      TEMPLATES_DIR="$(cd "$candidate_path" && pwd)"
+      log_ok "Using user-specified recovery templates from: $TEMPLATES_DIR"
+      return 0
+    else
+      log_warn "Specified directory did not contain valid recovery templates for ${gen_name}."
+      log_info "Proceeding with automatic download from GitHub..."
+    fi
+  fi
+
+  # 5. Remote download from GitHub repository
+  log_info "Downloading ${gen_name} recovery templates from GitHub repository..."
+  local dest_base="./templates/${camera_gen}"
+  if mkdir -p "$dest_base" 2>/dev/null && [ -w "$dest_base" ]; then
+    TEMPLATES_DIR="$(cd "$dest_base" && pwd)"
+  else
+    TEMPLATES_DIR="${target_work_dir}/downloaded_templates/${camera_gen}"
+    mkdir -p "$TEMPLATES_DIR"
+  fi
+
   mkdir -p "${TEMPLATES_DIR}/META-INF/com/google/android" "${TEMPLATES_DIR}/addon.d"
 
   local files=(
@@ -541,28 +608,41 @@ ensure_templates() {
     local dest="${TEMPLATES_DIR}/${rel_dest}"
     mkdir -p "$(dirname "$dest")"
     local url="${GITHUB_RAW_BASE}/${file}"
+    local fallback_url=""
+    if [ "$camera_gen" = "camera4" ]; then
+      fallback_url="https://raw.githubusercontent.com/vrwindsor1/Universal_MotCamera4Suite_Installer/main/templates/recovery/${rel_dest}"
+    fi
+
+    local dl_ok=0
     if command -v curl &>/dev/null; then
-      if ! curl -sSfL "$url" -o "$dest"; then
-        log_err "Failed to download template file: $url"
-        echo ""
-        echo -e "${C_YELLOW}[NOTE]${C_RESET} The recovery template module '${camera_gen}' (${gen_name}) is currently in development / not yet available."
-        echo "Currently active & working module: Moto Camera 4 ('camera4')."
-        echo "Support for ${gen_name} will be added in a future update."
-        exit 1
+      if curl -sSfL "$url" -o "$dest" 2>/dev/null; then
+        dl_ok=1
+      elif [ -n "$fallback_url" ] && curl -sSfL "$fallback_url" -o "$dest" 2>/dev/null; then
+        dl_ok=1
       fi
     elif command -v wget &>/dev/null; then
-      if ! wget -q "$url" -O "$dest"; then
-        log_err "Failed to download template file: $url"
-        exit 1
+      if wget -q "$url" -O "$dest" 2>/dev/null; then
+        dl_ok=1
+      elif [ -n "$fallback_url" ] && wget -q "$fallback_url" -O "$dest" 2>/dev/null; then
+        dl_ok=1
       fi
     else
       log_err "curl or wget is required to download recovery templates."
       exit 1
     fi
+
+    if [ "$dl_ok" -eq 0 ]; then
+      log_err "Failed to download template file: $url"
+      echo ""
+      echo -e "${C_YELLOW}[NOTE]${C_RESET} The recovery template module '${camera_gen}' (${gen_name}) is currently in development / not yet available."
+      echo "Currently active & working module: Moto Camera 4 ('camera4')."
+      echo "Support for ${gen_name} will be added in a future update."
+      exit 1
+    fi
   done
 
   chmod +x "${TEMPLATES_DIR}/toybox" "${TEMPLATES_DIR}/META-INF/com/google/android/update-binary" 2>/dev/null || true
-  log_ok "Recovery scaffolding templates for ${gen_name} downloaded successfully."
+  log_ok "Recovery templates for ${gen_name} successfully downloaded to: ${TEMPLATES_DIR}"
 }
 
 # ------------------------------------------------------------------------------
@@ -902,6 +982,7 @@ main() {
 
   local cli_input="$1"
   local cli_out="$2"
+  local cli_template="$3"
 
   local out_dir="${cli_out:-$DEFAULT_OUTPUT_DIR}"
   mkdir -p "$out_dir"
@@ -919,7 +1000,7 @@ main() {
   profile_device "$FIRMWARE_ROOT"
   detect_camera_generation "$FIRMWARE_ROOT"
 
-  ensure_templates "$WORK_DIR" "$CAMERA_GEN" "$CAMERA_GEN_NAME"
+  ensure_templates "$WORK_DIR" "$CAMERA_GEN" "$CAMERA_GEN_NAME" "$cli_template"
 
   local camera_prop="${WORK_DIR}/motocamera.prop"
   harvest_camera_properties "$FIRMWARE_ROOT" "$camera_prop"
