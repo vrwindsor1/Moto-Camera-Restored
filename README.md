@@ -10,18 +10,6 @@
 
 An all-in-one universal recovery package compiler that extracts Motorola Camera suites (**Moto Camera 2, 3, 4, and 5**), companion AI services, vendor hardware abstraction layers (HALs), and multi-camera tuning libraries directly from official Motorola stock firmware and packages them into **flashable zip packages for recovery sideload** on custom ROMs (Android 13+).
 
-> [!IMPORTANT]
-> **100% Rootless — Recovery Sideload Only**:  
-> This project does **NOT** use Magisk, KernelSU, or APatch. Camera packages are compiled into recovery-flashable zips installed via `adb sideload` in **Lineage Recovery, TWRP, or OrangeFox**. The camera stack integrates directly into the ROM partition structure.
-
-> [!NOTE]
-> **No Proprietary Files Hosted**:  
-> This repository contains **no copyrighted binaries, proprietary firmware blobs, or Motorola APKs**. All device-specific camera packages and HAL services are dynamically harvested on your local machine directly from official Motorola stock firmware provided by the user.
-
-> [!TIP]
-> **OTA Survival (`addon.d`) Included**:  
-> All generated recovery packages include an `addon.d` survival script. Camera apps, services, and libraries survive custom ROM OTA updates without needing to be re-flashed.
-
 ---
 
 ## 🎯 Purpose & Mission
