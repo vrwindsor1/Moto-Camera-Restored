@@ -311,7 +311,11 @@ def main():
                 f_out.write(f"device_name={device_name}\n")
                 f_out.write(f"device_codename={codename}\n")
                 f_out.write(f"issue_title=[Compatibility]: {device_name} ({codename})\n")
+                f_out.write(f"result_cat={result_cat}\n")
+                f_out.write(f"badge_emoji={badge_emoji}\n")
+                f_out.write(f"is_working_perfectly={'true' if result_cat == 'Works Perfectly' else 'false'}\n")
             print(f"[INFO] Exported issue_title='[Compatibility]: {device_name} ({codename})' to GITHUB_OUTPUT.")
+            print(f"[INFO] Exported result_cat='{result_cat}', is_working_perfectly={'true' if result_cat == 'Works Perfectly' else 'false'} to GITHUB_OUTPUT.")
         except Exception as e:
             print(f"[WARN] Failed to write to GITHUB_OUTPUT: {e}")
 

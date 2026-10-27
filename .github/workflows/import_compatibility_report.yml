@@ -80,28 +80,106 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Add Comment and Labels to Issue
-        if: steps.commit_step.outputs.changed == 'true'
+      - name: Add Comment, Labels, and Handle Issue Status
+        if: steps.commit_step.outputs.changed == 'true' || steps.import_step.outputs.device_codename != ''
         uses: actions/github-script@v7
+        env:
+          IS_WORKING_PERFECTLY: ${{ steps.import_step.outputs.is_working_perfectly }}
+          RESULT_CAT: ${{ steps.import_step.outputs.result_cat }}
         with:
           script: |
+            const isWorkingPerfectly = process.env.IS_WORKING_PERFECTLY === 'true';
+            const resultCat = process.env.RESULT_CAT || 'Tested';
+
+            if (!context.issue || !context.issue.number) {
+              console.log("No issue context found; skipping issue comment/update.");
+              return;
+            }
+
+            // 1. Fetch comments to avoid duplicate bot comments on re-runs or edits
+            let alreadyCommented = false;
             try {
-              await github.rest.issues.createComment({
+              const comments = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: "🎉 **Thank you!** Your compatibility report has been automatically processed and added to [COMPATIBILITY.md](https://github.com/vrwindsor1/Moto-Camera-Restored/blob/main/COMPATIBILITY.md)."
+                issue_number: context.issue.number
               });
+              alreadyCommented = comments.data.some(c => c.user && c.user.login === 'github-actions[bot]');
             } catch (err) {
-              console.log("Error creating comment:", err);
+              console.log("Error listing comments:", err);
             }
+
+            if (!alreadyCommented) {
+              let commentBody = `🎉 **Thank you!** Your compatibility report has been automatically processed and added to the [Per-Device Compatibility Table](https://github.com/vrwindsor1/Moto-Camera-Restored/blob/main/COMPATIBILITY.md).`;
+
+              if (isWorkingPerfectly) {
+                commentBody += `\n\n✅ **Outcome: Works Perfectly** — All camera features were reported as functional on this device. This issue has been automatically closed as completed.\n\n*If you encounter regressions in future ROM updates or have additional details to report, feel free to reopen this issue or submit a new report!*`;
+              } else {
+                commentBody += `\n\n📌 **Outcome: ${resultCat}** — This issue will remain open for community tracking and troubleshooting.`;
+              }
+
+              try {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: commentBody
+                });
+                console.log(`Created confirmation comment on issue #${context.issue.number}.`);
+              } catch (err) {
+                console.log("Error creating comment:", err);
+              }
+            } else {
+              console.log("Bot comment already exists; skipping duplicate comment.");
+            }
+
+            // 2. Add labels (and verified label if working perfectly)
             try {
+              const labelsToAdd = ["imported", "compatibility"];
+              if (isWorkingPerfectly) {
+                labelsToAdd.push("verified");
+              }
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                labels: ["imported", "compatibility"]
+                labels: labelsToAdd
               });
+              console.log(`Applied labels [${labelsToAdd.join(", ")}] to issue #${context.issue.number}.`);
             } catch (err) {
               console.log("Error adding labels:", err);
+            }
+
+            // 3. Remove triage label if present
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: "triage"
+              });
+              console.log(`Removed triage label from issue #${context.issue.number}.`);
+            } catch (err) {
+              // Ignore if label doesn't exist on issue
+            }
+
+            // 4. Automatically close the issue if reported as working perfectly
+            if (isWorkingPerfectly) {
+              const isClosed = context.payload.issue && context.payload.issue.state === 'closed';
+              if (!isClosed) {
+                try {
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    state: 'closed',
+                    state_reason: 'completed'
+                  });
+                  console.log(`Issue #${context.issue.number} automatically closed as completed.`);
+                } catch (err) {
+                  console.log("Error closing issue:", err);
+                }
+              } else {
+                console.log(`Issue #${context.issue.number} is already closed.`);
+              }
             }
