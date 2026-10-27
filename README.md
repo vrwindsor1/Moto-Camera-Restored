@@ -94,7 +94,18 @@ Ensure dynamic partition and filesystem extraction tools are installed:
 
 ---
 
-### 2. Build the Recovery Package
+### 2. Clone the Repository
+
+Clone this repository to your computer and navigate into the project directory:
+
+```bash
+git clone https://github.com/vrwindsor1/Moto-Camera-Restored.git
+cd Moto-Camera-Restored
+```
+
+---
+
+### 3. Build the Recovery Package
 
 The compiler extracts your stock firmware, profiles your device hardware and Android release metadata, determines which camera generation is present (`camera4`, `camera5`, etc.), and dynamically resolves the matching recovery scaffolding templates.
 
@@ -141,7 +152,7 @@ output/MotoCameraRestored_<device>_info.txt
 
 ---
 
-### 3. Flash via Recovery Sideload
+### 4. Flash via Recovery Sideload
 1. Reboot your Motorola device into **Recovery Mode** (Lineage Recovery, TWRP, or OrangeFox).
 2. Put the device into sideload mode:
    * **Lineage Recovery:** Select **Apply Update** $\rightarrow$ **Apply from ADB**.
