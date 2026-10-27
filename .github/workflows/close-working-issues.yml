@@ -1,0 +1,114 @@
+name: "Close Resolved Compatibility Reports"
+
+on:
+  push:
+    paths:
+      - '.github/workflows/close-working-issues.yml'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  close-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close issues meeting criteria
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+
+            console.log(`Found ${issues.data.length} open issue(s).`);
+
+            for (const issue of issues.data) {
+              if (issue.pull_request) continue;
+
+              const body = issue.body || '';
+              const title = issue.title || '';
+
+              const isCompatReport = title.startsWith('[Compatibility]') ||
+                issue.labels.some(l => l.name === 'compatibility') ||
+                (body.includes('### Compiler Method') && (body.includes('### Device') || body.includes('### Test Result')));
+
+              if (!isCompatReport) {
+                console.log(`Issue #${issue.number} "${title}" is not a compatibility report. Skipping.`);
+                continue;
+              }
+
+              const lowerBody = body.toLowerCase();
+              const isWorkingPerfectly = lowerBody.includes('works perfectly');
+
+              if (!isWorkingPerfectly) {
+                console.log(`Issue #${issue.number} "${title}" is not marked as 'Works Perfectly'. Skipping.`);
+                continue;
+              }
+
+              console.log(`Processing issue #${issue.number} "${title}" for closure...`);
+
+              // Check existing comments
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number
+              });
+
+              const alreadyCommented = comments.data.some(c =>
+                c.user && c.user.login === 'github-actions[bot]' && c.body.includes('Outcome: Works Perfectly')
+              );
+
+              if (!alreadyCommented) {
+                const commentBody = `🎉 **Thank you!** Your compatibility report has been processed and recorded in the [Per-Device Compatibility Table](https://github.com/vrwindsor1/Moto-Camera-Restored/blob/main/COMPATIBILITY.md).\n\n✅ **Outcome: Works Perfectly** — All camera features were reported as functional on this device. This issue has been automatically closed as completed.\n\n*If you encounter regressions in future ROM updates or have additional details to report, feel free to reopen this issue or submit a new report!*`;
+                try {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    body: commentBody
+                  });
+                } catch (e) {
+                  console.log(`Error commenting on #${issue.number}:`, e);
+                }
+              }
+
+              // Add labels
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: ['imported', 'compatibility', 'verified']
+                });
+              } catch (e) {
+                console.log(`Error labeling #${issue.number}:`, e);
+              }
+
+              // Remove triage label
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  name: 'triage'
+                });
+              } catch (e) {}
+
+              // Close the issue
+              try {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: 'closed',
+                  state_reason: 'completed'
+                });
+                console.log(`Successfully closed issue #${issue.number} as completed.`);
+              } catch (e) {
+                console.log(`Error closing #${issue.number}:`, e);
+              }
+            }
