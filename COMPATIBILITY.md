@@ -1,7 +1,7 @@
 # Device Compatibility Matrix
 
 > **Automatic Sync:** This table is automatically generated and synchronized with the official [LineageOS Wiki](https://github.com/LineageOS/lineage_wiki) repository via GitHub Actions.  
-> **Last Updated:** `2026-10-27 15:26:59 UTC`  
+> **Last Updated:** `2026-10-27 15:29:39 UTC`  
 > **Total Motorola Devices Tracked:** `97` (`61` actively maintained, `36` discontinued)
 
 ---
@@ -14,66 +14,66 @@ All packages are compiled into **recovery sideload flashable zips** (`adb sidelo
 
 | Device Name | Codename | LineageOS Branch | Chipset / SoC | Stock Camera Era | Recommended Recovery Suite | Maintainers |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **defy 2021** | `bathena` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Deivid Ignacio Parra (Deivid21), Francisco Sanchez (Fraaxius) |
-| **edge** | `racer` | 23.2 | Qualcomm SM7250 Snapdragon 765G | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | ItsVixano |
-| **edge 20** | `berlin` | 24.0 | Qualcomm SM7325 Snapdragon 778G 5G | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | npjohnson, SGCMarkus |
-| **edge 20 pro** | `pstar` | 24.0 | Qualcomm SM8250-AC Snapdragon 870 | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | npjohnson, SGCMarkus |
-| **edge 2021** | `berlna` | 24.0 | Qualcomm SM7325 Snapdragon 778G 5G | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | SyberHexen |
+| **defy 2021** | `bathena` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Deivid Ignacio Parra (Deivid21), Francisco Sanchez (Fraaxius) |
+| **edge** | `racer` | 23.2 | Qualcomm SM7250 Snapdragon 765G | Moto Camera 3 | `MotCamera 3 Recovery Suite` | ItsVixano |
+| **edge 20** | `berlin` | 24.0 | Qualcomm SM7325 Snapdragon 778G 5G | Moto Camera 4 | `MotCamera 4 Recovery Suite` | npjohnson, SGCMarkus |
+| **edge 20 pro** | `pstar` | 24.0 | Qualcomm SM8250-AC Snapdragon 870 | Moto Camera 4 | `MotCamera 4 Recovery Suite` | npjohnson, SGCMarkus |
+| **edge 2021** | `berlna` | 24.0 | Qualcomm SM7325 Snapdragon 778G 5G | Moto Camera 4 | `MotCamera 4 Recovery Suite` | SyberHexen |
 | **edge 2024** | `avatrn` | 24.0 | Qualcomm SM7435-AB Snapdragon 7s Gen 2 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | elginsk8r |
-| **edge 30** | `dubai` | 24.0 | Qualcomm SM7325-AE Snapdragon 778G+ 5G | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | themard, sb6596, Demon000 |
-| **edge 30 fusion** | `tundra` | 24.0 | Qualcomm SM8350-AC Snapdragon 888+ | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | themard, electimon, npjohnson |
-| **edge 30 neo** | `miami` | 24.0 | Qualcomm SM6375 Snapdragon 695 | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | marcost2 |
-| **edge 30 ultra** | `eqs` | 23.2 | Qualcomm SM8475 Snapdragon 8+ Gen1 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | demon000, Tomoms |
+| **edge 30** | `dubai` | 24.0 | Qualcomm SM7325-AE Snapdragon 778G+ 5G | Moto Camera 4 | `MotCamera 4 Recovery Suite` | themard, sb6596, Demon000 |
+| **edge 30 fusion** | `tundra` | 24.0 | Qualcomm SM8350-AC Snapdragon 888+ | Moto Camera 4 | `MotCamera 4 Recovery Suite` | themard, electimon, npjohnson |
+| **edge 30 neo** | `miami` | 24.0 | Qualcomm SM6375 Snapdragon 695 | Moto Camera 4 | `MotCamera 4 Recovery Suite` | marcost2 |
+| **edge 30 ultra** | `eqs` | 23.2 | Qualcomm SM8475 Snapdragon 8+ Gen1 | Moto Camera 4 | `MotCamera 4 Recovery Suite` | demon000, Tomoms |
 | **edge 40 pro** | `rtwo` | 24.0 | Qualcomm SM8550 Snapdragon 8 Gen2 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | sgcmarkus, themard |
-| **edge s** | `nio` | 24.0 | Qualcomm SM8250-AC Snapdragon 870 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | dianlujitao |
-| **Edge S30** | `xpeng` | 24.0 | Qualcomm SM8350-AC Snapdragon 888+ | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | themard |
+| **edge s** | `nio` | 24.0 | Qualcomm SM8250-AC Snapdragon 870 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | dianlujitao |
+| **Edge S30** | `xpeng` | 24.0 | Qualcomm SM8350-AC Snapdragon 888+ | Moto Camera 4 | `MotCamera 4 Recovery Suite` | themard |
 | **edge+ (2023)** | `rtwo` | 24.0 | Qualcomm SM8550 Snapdragon 8 Gen2 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | sgcmarkus, themard |
-| **moto e7 plus** | `guam` | 24.0 | Qualcomm SM4250 Snapdragon 460 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Rajin Gangadharan (GRajin), Deivid Ignacio Parra (Deivid21) |
-| **moto g 5G** | `kiev` | 23.2 | Qualcomm SM7225 Snapdragon 750G | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | basamaryan, SyberHexen, Vivekachooz |
+| **moto e7 plus** | `guam` | 24.0 | Qualcomm SM4250 Snapdragon 460 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Rajin Gangadharan (GRajin), Deivid Ignacio Parra (Deivid21) |
+| **moto g 5G** | `kiev` | 23.2 | Qualcomm SM7225 Snapdragon 750G | Moto Camera 3 | `MotCamera 3 Recovery Suite` | basamaryan, SyberHexen, Vivekachooz |
 | **moto g 5G - 2024** | `fogo` | 24.0 | Qualcomm SM4375 Snapdragon 4 Gen 1 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | mikeioannina |
-| **moto g 5G plus** | `nairo` | 23.2 | Qualcomm SM7250 Snapdragon 765G | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | ItsVixano, Ivanmeler, SyberHexen, zlewchan |
-| **moto g play (2021)** | `guamna` | 24.0 | Qualcomm SM4250 Snapdragon 460 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Deivid Ignacio Parra (Deivid21) |
-| **moto g power 2021** | `borneo` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Syed Fawwaz Hussain (Fazwalrus), Deivid Ignacio Parra (Deivid21) |
-| **moto g pure** | `ellis` | 24.0 | MediaTek Helio G25 | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | bengris32 |
-| **moto g stylus 5G** | `denver` | 24.0 | Qualcomm SM4350 Snapdragon 480 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Vivekachooz |
-| **moto g stylus 5G (2022)** | `milanf` | 24.0 | Qualcomm SM6375 Snapdragon 695 | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | AnierinBliss |
+| **moto g 5G plus** | `nairo` | 23.2 | Qualcomm SM7250 Snapdragon 765G | Moto Camera 3 | `MotCamera 3 Recovery Suite` | ItsVixano, Ivanmeler, SyberHexen, zlewchan |
+| **moto g play (2021)** | `guamna` | 24.0 | Qualcomm SM4250 Snapdragon 460 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Deivid Ignacio Parra (Deivid21) |
+| **moto g power 2021** | `borneo` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Syed Fawwaz Hussain (Fazwalrus), Deivid Ignacio Parra (Deivid21) |
+| **moto g pure** | `ellis` | 24.0 | MediaTek Helio G25 | Moto Camera 4 | `MotCamera 4 Recovery Suite` | bengris32 |
+| **moto g stylus 5G** | `denver` | 24.0 | Qualcomm SM4350 Snapdragon 480 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Vivekachooz |
+| **moto g stylus 5G (2022)** | `milanf` | 24.0 | Qualcomm SM6375 Snapdragon 695 | Moto Camera 4 | `MotCamera 4 Recovery Suite` | AnierinBliss |
 | **moto g stylus 5G (2023)** | `genevn` | 24.0 | Qualcomm SM6450 Snapdragon 6 Gen 1 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | elginsk8r, mikeioannina |
 | **moto g05** | `lamu` | 24.0 | MediaTek Helio G81 Extreme | Moto Camera 5 | `MotCamera 5 Recovery Suite` | R0rt1z2, surblazer |
-| **moto g10** | `capri` | 24.0 | Qualcomm SM4250 Snapdragon 460 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Deivid Ignacio Parra (Deivid21), Sultanahamer |
-| **moto g10 power** | `capri` | 24.0 | Qualcomm SM4250 Snapdragon 460 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Deivid Ignacio Parra (Deivid21), Sultanahamer |
-| **moto g100** | `nio` | 24.0 | Qualcomm SM8250-AC Snapdragon 870 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | dianlujitao |
+| **moto g10** | `capri` | 24.0 | Qualcomm SM4250 Snapdragon 460 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Deivid Ignacio Parra (Deivid21), Sultanahamer |
+| **moto g10 power** | `capri` | 24.0 | Qualcomm SM4250 Snapdragon 460 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Deivid Ignacio Parra (Deivid21), Sultanahamer |
+| **moto g100** | `nio` | 24.0 | Qualcomm SM8250-AC Snapdragon 870 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | dianlujitao |
 | **moto g15** | `lamu` | 24.0 | MediaTek Helio G81 Extreme | Moto Camera 5 | `MotCamera 5 Recovery Suite` | R0rt1z2, surblazer |
 | **moto g15 power** | `lamu` | 24.0 | MediaTek Helio G81 Extreme | Moto Camera 5 | `MotCamera 5 Recovery Suite` | R0rt1z2, surblazer |
-| **moto g200 5G** | `xpeng` | 24.0 | Qualcomm SM8350-AC Snapdragon 888+ | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | themard |
-| **moto g30** | `caprip` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | mikeioannina, Deivid Ignacio Parra (Deivid21) |
-| **moto g32** | `devon` | 24.0 | Qualcomm SM6225 Snapdragon 680 4G | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | Dhina17, mikeioannina, Deivid Ignacio Parra (Deivid21) |
+| **moto g200 5G** | `xpeng` | 24.0 | Qualcomm SM8350-AC Snapdragon 888+ | Moto Camera 4 | `MotCamera 4 Recovery Suite` | themard |
+| **moto g30** | `caprip` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | mikeioannina, Deivid Ignacio Parra (Deivid21) |
+| **moto g32** | `devon` | 24.0 | Qualcomm SM6225 Snapdragon 680 4G | Moto Camera 4 | `MotCamera 4 Recovery Suite` | Dhina17, mikeioannina, Deivid Ignacio Parra (Deivid21) |
 | **moto g34 5G** | `fogos` | 24.0 | Qualcomm SM6375 Snapdragon 695 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | mikeioannina |
-| **moto g42** | `hawao` | 24.0 | Qualcomm SM6225 Snapdragon 680 4G | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | Dhina17, mikeioannina, Deivid Ignacio Parra (Deivid21) |
+| **moto g42** | `hawao` | 24.0 | Qualcomm SM6225 Snapdragon 680 4G | Moto Camera 4 | `MotCamera 4 Recovery Suite` | Dhina17, mikeioannina, Deivid Ignacio Parra (Deivid21) |
 | **moto g45 5G** | `fogos` | 24.0 | Qualcomm SM6375-AC Snapdragon 6s Gen 3 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | mikeioannina |
-| **moto g50** | `ibiza` | 24.0 | Qualcomm SM4350 Snapdragon 480 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Onelots |
-| **moto g52** | `rhode` | 24.0 | Qualcomm SM6225 Snapdragon 680 4G | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | Dhina17, mikeioannina, tomoms, Deivid Ignacio Parra (Deivid21) |
-| **moto g6 plus** | `evert` | 22.2 | Qualcomm SDM630 Snapdragon 630 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | jro1979 |
-| **moto g7** | `river` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | erfanoabdi, npjohnson, SyberHexen |
-| **moto g7 play** | `channel` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | SyberHexen, deadman96385, erfanoabdi, npjohnson |
-| **moto g7 plus** | `lake` | 22.2 | Qualcomm SDM636 Snapdragon 636 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | jro1979, npjohnson |
-| **moto g7 power** | `ocean` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | SyberHexen, erfanoabdi, npjohnson |
-| **moto g82 5G** | `rhodep` | 24.0 | Qualcomm SM6375 Snapdragon 695 | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | AnandSuresh02, sevenrock |
+| **moto g50** | `ibiza` | 24.0 | Qualcomm SM4350 Snapdragon 480 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Onelots |
+| **moto g52** | `rhode` | 24.0 | Qualcomm SM6225 Snapdragon 680 4G | Moto Camera 4 | `MotCamera 4 Recovery Suite` | Dhina17, mikeioannina, tomoms, Deivid Ignacio Parra (Deivid21) |
+| **moto g6 plus** | `evert` | 22.2 | Qualcomm SDM630 Snapdragon 630 | Moto Camera 2 | `MotCamera 2 Recovery Suite` | jro1979 |
+| **moto g7** | `river` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 2 Recovery Suite` | erfanoabdi, npjohnson, SyberHexen |
+| **moto g7 play** | `channel` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 2 Recovery Suite` | SyberHexen, deadman96385, erfanoabdi, npjohnson |
+| **moto g7 plus** | `lake` | 22.2 | Qualcomm SDM636 Snapdragon 636 | Moto Camera 2 | `MotCamera 2 Recovery Suite` | jro1979, npjohnson |
+| **moto g7 power** | `ocean` | 22.2 | Qualcomm SDM632 Snapdragon 632 | Moto Camera 2 | `MotCamera 2 Recovery Suite` | SyberHexen, erfanoabdi, npjohnson |
+| **moto g82 5G** | `rhodep` | 24.0 | Qualcomm SM6375 Snapdragon 695 | Moto Camera 4 | `MotCamera 4 Recovery Suite` | AnandSuresh02, sevenrock |
 | **moto g84 5G** | `bangkk` | 24.0 | Qualcomm SM6375 Snapdragon 695 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | mikeioannina |
-| **moto g9** | `guamp` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | DelightReza, Deivid Ignacio Parra (Deivid21) |
-| **moto g9 play** | `guamp` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | DelightReza, Deivid Ignacio Parra (Deivid21) |
-| **moto g9 power** | `cebu` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Deivid Ignacio Parra (Deivid21) |
-| **moto one 5G** | `nairo` | 23.2 | Qualcomm SM7250 Snapdragon 765G | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | ItsVixano, Ivanmeler, SyberHexen, zlewchan |
-| **moto one 5G ace** | `kiev` | 23.2 | Qualcomm SM7225 Snapdragon 750G | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | basamaryan, SyberHexen, Vivekachooz |
-| **moto S30 Pro** | `tundra` | 24.0 | Qualcomm SM8350-AC Snapdragon 888+ | Moto Camera 4 | `MotCamera 4 / 5 Recovery Suite` | themard, electimon, npjohnson |
-| **moto x4** | `payton` | 22.2 | Qualcomm SDM630 Snapdragon 630 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | erfanoabdi, ThEMarD, electimon |
+| **moto g9** | `guamp` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | DelightReza, Deivid Ignacio Parra (Deivid21) |
+| **moto g9 play** | `guamp` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | DelightReza, Deivid Ignacio Parra (Deivid21) |
+| **moto g9 power** | `cebu` | 24.0 | Qualcomm SM6115 Snapdragon 662 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Deivid Ignacio Parra (Deivid21) |
+| **moto one 5G** | `nairo` | 23.2 | Qualcomm SM7250 Snapdragon 765G | Moto Camera 3 | `MotCamera 3 Recovery Suite` | ItsVixano, Ivanmeler, SyberHexen, zlewchan |
+| **moto one 5G ace** | `kiev` | 23.2 | Qualcomm SM7225 Snapdragon 750G | Moto Camera 3 | `MotCamera 3 Recovery Suite` | basamaryan, SyberHexen, Vivekachooz |
+| **moto S30 Pro** | `tundra` | 24.0 | Qualcomm SM8350-AC Snapdragon 888+ | Moto Camera 4 | `MotCamera 4 Recovery Suite` | themard, electimon, npjohnson |
+| **moto x4** | `payton` | 22.2 | Qualcomm SDM630 Snapdragon 630 | Moto Camera 2 | `MotCamera 2 Recovery Suite` | erfanoabdi, ThEMarD, electimon |
 | **moto X40** | `rtwo` | 24.0 | Qualcomm SM8550 Snapdragon 8 Gen2 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | sgcmarkus, themard |
-| **moto z (2018)** | `nash` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | erfanoabdi, npjohnson, qsnc |
-| **moto z2 force** | `nash` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | erfanoabdi, npjohnson, qsnc |
-| **moto z3** | `messi` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | npjohnson |
-| **moto z3 play** | `beckham` | 22.2 | Qualcomm SDM636 Snapdragon 636 | Moto Camera 2 | `MotCamera 2 / 3 Recovery Suite` | jro1979 |
-| **one action** | `troika` | 24.0 | Samsung Exynos 9609 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Stricted, npjohnson, DaemonMCR |
-| **one vision** | `kane` | 24.0 | Samsung Exynos 9609 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Stricted, npjohnson, DaemonMCR |
-| **p50** | `kane` | 24.0 | Samsung Exynos 9609 | Moto Camera 3 | `MotCamera 3 / 4 Recovery Suite` | Stricted, npjohnson, DaemonMCR |
+| **moto z (2018)** | `nash` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 2 Recovery Suite` | erfanoabdi, npjohnson, qsnc |
+| **moto z2 force** | `nash` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 2 Recovery Suite` | erfanoabdi, npjohnson, qsnc |
+| **moto z3** | `messi` | 22.2 | Qualcomm MSM8998 Snapdragon 835 | Moto Camera 2 | `MotCamera 2 Recovery Suite` | npjohnson |
+| **moto z3 play** | `beckham` | 22.2 | Qualcomm SDM636 Snapdragon 636 | Moto Camera 2 | `MotCamera 2 Recovery Suite` | jro1979 |
+| **one action** | `troika` | 24.0 | Samsung Exynos 9609 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Stricted, npjohnson, DaemonMCR |
+| **one vision** | `kane` | 24.0 | Samsung Exynos 9609 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Stricted, npjohnson, DaemonMCR |
+| **p50** | `kane` | 24.0 | Samsung Exynos 9609 | Moto Camera 3 | `MotCamera 3 Recovery Suite` | Stricted, npjohnson, DaemonMCR |
 | **ThinkPhone by motorola** | `bronco` | 24.0 | Qualcomm SM8475 Snapdragon 8+ Gen1 | Moto Camera 5 | `MotCamera 5 Recovery Suite` | demon000, elginsk8r |
 
 ---
@@ -128,8 +128,11 @@ These devices previously received official LineageOS builds but are no longer ac
 
 ---
 
-## 🔍 How Recommendations Work
-* **Moto Camera 2 Era Devices:** Devices that originally shipped with Android 7–9 ran `com.motorola.camera2`. Moto Camera Restored aims to provide both a native **MotCamera 2 Recovery Suite** adapted for modern Android as well as modern **MotCamera 3 / 4** alternative packages for enhanced auxiliary sensor support.
-* **Moto Camera 3 & 4 Era Devices:** Devices shipping with modern multi-lens arrays (ultrawide, macro, telephoto) lose vendor post-processing when flashing custom ROMs. The compiled recovery package restores Moto camera algorithms, physical lens switching, and system permissions into the ROM partition.
-* **Moto Camera 5 Era Devices:** High-end and recent 2023–2025 devices utilize Moto's newer AI pipelines requiring the **MotCamera 5 Recovery Suite**.
+## 🔍 Native Restoration Philosophy
+The primary goal of **Moto Camera Restored** is to restore the **original, native camera stack** that each device shipped with—**not** to cross-port an incompatible newer camera generation onto older hardware:
+* **Moto Camera 2 Era Devices:** Devices that originally shipped with Android 7–9 ran `com.motorola.camera2` (e.g., `payton`, `lake`, `nash`). The toolkit restores their native **MotCamera 2** suite and HAL services adapted for modern LineageOS.
+* **Moto Camera 3 Era Devices:** Devices that launched with Moto Camera 3 (e.g., `nio`, `kiev`, `guamp`) receive their native **MotCamera 3** recovery suite.
+* **Moto Camera 4 Era Devices:** Devices built for Moto Camera 4 (e.g., `dubai`, `miami`, `rhode`) receive their native **MotCamera 4** recovery suite.
+* **Moto Camera 5 Era Devices:** Newer devices utilizing Moto Camera 5 (e.g., `rtwo`, `avatrn`, `genevn`) receive their native **MotCamera 5** recovery suite.
+* **Hardware Fidelity:** Restoring the native suite ensures complete ISP calibration integrity, auxiliary sensor switching, and hardware features without cross-porting bugs.
 * **OTA Survival:** Every compiled package installs an `addon.d` backup script into the system partition to survive weekly LineageOS updates without re-sideloading.

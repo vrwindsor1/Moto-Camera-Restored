@@ -35,6 +35,10 @@ Standard AOSP camera apps (like LineageOS *Aperture*) frequently cannot take ful
 
 **Moto Camera Restored** unites the tooling for **MotCamera 2**, **MotCamera 3**, **MotCamera 4**, and **MotCamera 5** into a single toolkit. It allows you to feed in your device's stock firmware and automatically generate a tailored recovery package that restores native camera performance.
 
+> [!NOTE]
+> **Native Restoration, Not Cross-Porting**:  
+> The explicit goal of this project is to restore the **original camera generation each device was designed to run** (e.g., restoring Moto Camera 2 on devices that originally shipped with Camera 2, or Moto Camera 4 on devices designed for Camera 4). We do **not** cross-port newer, incompatible camera versions onto older hardware. This ensures 100% hardware fidelity, preserving factory ISP calibration, multi-lens switching, and sensor stability.
+
 ---
 
 ## 🌐 Why LineageOS as the Upstream Baseline?
@@ -57,9 +61,9 @@ We automatically track and synchronize our compatibility matrix with the officia
 
 | Camera Generation | Original Stock Era | Example Target Devices | Target Recovery Package |
 | :--- | :--- | :--- | :--- |
-| **Moto Camera 2** | Snapdragon 630 / 632 / 636 / 835 (Android 7–9) | `payton` (Moto X4), `lake` (G7 Plus), `river` (G7), `nash` (Z2 Force) | **MotCamera 2 Recovery Suite / 3 Recovery Suite** |
-| **Moto Camera 3** | Snapdragon 662 / 750G / 765G / 870 (Android 10–11) | `nio` (Moto G100), `kiev` (Moto G 5G), `guamp` (G9 Play) | **MotCamera 3 Recovery Suite / 4 Recovery Suite** |
-| **Moto Camera 4** | Snapdragon 695 / 680 / 778G / 888+ (Android 12–13) | `dubai` (Edge 30), `miami` (Edge 30 Neo), `rhode` (G52) | **MotCamera 4 Recovery Suite / 5 Recovery Suite** |
+| **Moto Camera 2** | Snapdragon 630 / 632 / 636 / 835 (Android 7–9) | `payton` (Moto X4), `lake` (G7 Plus), `river` (G7), `nash` (Z2 Force) | **MotCamera 2 Recovery Suite** |
+| **Moto Camera 3** | Snapdragon 662 / 750G / 765G / 870 (Android 10–11) | `nio` (Moto G100), `kiev` (Moto G 5G), `guamp` (G9 Play) | **MotCamera 3 Recovery Suite** |
+| **Moto Camera 4** | Snapdragon 695 / 680 / 778G / 888+ (Android 12–13) | `dubai` (Edge 30), `miami` (Edge 30 Neo), `rhode` (G52) | **MotCamera 4 Recovery Suite** |
 | **Moto Camera 5** | Snapdragon 8 Gen 2 / 8+ Gen 1 / 6 Gen 1 (Android 14+) | `rtwo` (Edge 40 Pro / Edge+ 2023), `genevn` (G Stylus 5G 2023) | **MotCamera 5 Recovery Suite** |
 
 ---

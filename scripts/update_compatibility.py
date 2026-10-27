@@ -25,8 +25,14 @@ CAM3_CODENAMES = {
     'ibiza', 'racer'
 }
 
+CAM4_CODENAMES = {
+    'berlin', 'berlna', 'dubai', 'miami', 'milanf', 'rhode', 'rhodep',
+    'devon', 'hawao', 'tundra', 'xpeng', 'eqs', 'ellis'
+}
+
 CAM5_CODENAMES = {
-    'rtwo', 'avatrn', 'fogo', 'fogos', 'lamu', 'lyriq', 'bronco'
+    'rtwo', 'avatrn', 'fogo', 'fogos', 'lamu', 'lyriq', 'bronco',
+    'genevn', 'bangkk'
 }
 
 def infer_camera_generation(device):
@@ -35,13 +41,15 @@ def infer_camera_generation(device):
     soc = str(device.get('soc', '')).lower()
 
     if codename in CAM2_CODENAMES:
-        return "Moto Camera 2", "MotCamera 2 / 3 Recovery Suite"
+        return "Moto Camera 2", "MotCamera 2 Recovery Suite"
+    if codename in CAM3_CODENAMES:
+        return "Moto Camera 3", "MotCamera 3 Recovery Suite"
+    if codename in CAM4_CODENAMES:
+        return "Moto Camera 4", "MotCamera 4 Recovery Suite"
     if codename in CAM5_CODENAMES:
         return "Moto Camera 5", "MotCamera 5 Recovery Suite"
-    if codename in CAM3_CODENAMES:
-        return "Moto Camera 3", "MotCamera 3 / 4 Recovery Suite"
 
-    # Fallback heuristics
+    # Fallback heuristics based on release year / SoC
     try:
         year = int(release.split('-')[0]) if release else 0
     except ValueError:
@@ -50,11 +58,11 @@ def infer_camera_generation(device):
     if year >= 2023 or 'gen 2' in soc or 'gen 3' in soc or '8+ gen1' in soc:
         return "Moto Camera 5", "MotCamera 5 Recovery Suite"
     elif year >= 2021 or '695' in soc or '778g' in soc or '680' in soc:
-        return "Moto Camera 4", "MotCamera 4 / 5 Recovery Suite"
+        return "Moto Camera 4", "MotCamera 4 Recovery Suite"
     elif year >= 2019:
-        return "Moto Camera 3", "MotCamera 3 / 4 Recovery Suite"
+        return "Moto Camera 3", "MotCamera 3 Recovery Suite"
     else:
-        return "Moto Camera 2", "MotCamera 2 / 3 Recovery Suite"
+        return "Moto Camera 2", "MotCamera 2 Recovery Suite"
 
 def parse_lineage_devices(devices_dir):
     devices = []
@@ -165,10 +173,13 @@ These devices previously received official LineageOS builds but are no longer ac
 
 ---
 
-## 🔍 How Recommendations Work
-* **Moto Camera 2 Era Devices:** Devices that originally shipped with Android 7–9 ran `com.motorola.camera2`. Moto Camera Restored aims to provide both a native **MotCamera 2 Recovery Suite** adapted for modern Android as well as modern **MotCamera 3 / 4** alternative packages for enhanced auxiliary sensor support.
-* **Moto Camera 3 & 4 Era Devices:** Devices shipping with modern multi-lens arrays (ultrawide, macro, telephoto) lose vendor post-processing when flashing custom ROMs. The compiled recovery package restores Moto camera algorithms, physical lens switching, and system permissions into the ROM partition.
-* **Moto Camera 5 Era Devices:** High-end and recent 2023–2025 devices utilize Moto's newer AI pipelines requiring the **MotCamera 5 Recovery Suite**.
+## 🔍 Native Restoration Philosophy
+The primary goal of **Moto Camera Restored** is to restore the **original, native camera stack** that each device shipped with—**not** to cross-port an incompatible newer camera generation onto older hardware:
+* **Moto Camera 2 Era Devices:** Devices that originally shipped with Android 7–9 ran `com.motorola.camera2` (e.g., `payton`, `lake`, `nash`). The toolkit restores their native **MotCamera 2** suite and HAL services adapted for modern LineageOS.
+* **Moto Camera 3 Era Devices:** Devices that launched with Moto Camera 3 (e.g., `nio`, `kiev`, `guamp`) receive their native **MotCamera 3** recovery suite.
+* **Moto Camera 4 Era Devices:** Devices built for Moto Camera 4 (e.g., `dubai`, `miami`, `rhode`) receive their native **MotCamera 4** recovery suite.
+* **Moto Camera 5 Era Devices:** Newer devices utilizing Moto Camera 5 (e.g., `rtwo`, `avatrn`, `genevn`) receive their native **MotCamera 5** recovery suite.
+* **Hardware Fidelity:** Restoring the native suite ensures complete ISP calibration integrity, auxiliary sensor switching, and hardware features without cross-porting bugs.
 * **OTA Survival:** Every compiled package installs an `addon.d` backup script into the system partition to survive weekly LineageOS updates without re-sideloading.
 """
 
