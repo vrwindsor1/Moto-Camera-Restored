@@ -59,7 +59,7 @@ We automatically track and synchronize our compatibility matrix with the officia
 
 ### 🔍 How to Identify Your Device's Camera Generation
 
-| Generation | Package Name | Version Range | Official Launch Window (Play Store) |
+| Generation | Package Name | Version Range | Official Device Compatibility |
 | :--- | :--- | :--- | :--- |
 | **Moto Camera 2** | `com.motorola.camera2` | `v5.x` – `v7.x` *(e.g. 7.2.x)* | Select devices launched in **2016 – 2019** |
 | **Moto Camera 3** | `com.motorola.camera3` | `v7.x` – `v8.x` *(e.g. 8.0.x, 8.1.x)* | Select devices launched in **2020 and beyond** |
