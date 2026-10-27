@@ -21,7 +21,7 @@ Standard AOSP camera apps (like LineageOS *Aperture*) frequently cannot take ful
 * **Proprietary imaging algorithms:** Moto Night Vision, Spot Color, Cinemagraph, and Moto AI photo enhancements.
 * **Device-specific tuning:** Correct ISP configurations, exposure calibration, and dual-camera stereoscopic depth maps.
 
-**Moto Camera Restored** allows you to feed in your device's stock firmware and automatically generate a recovery package that restores the native camera for devices that used **MotCamera 2**, **MotCamera 3**, **MotCamera 4**, or **MotCamera 5**.
+**Moto Camera Restored** allows you to feed in your device's stock firmware and automatically generate a recovery package that restores the native camera for devices that used **Moto Camera 2**, **Moto Camera 3**, **Moto Camera 4**, or **Moto Camera 5**.
 
 > [!NOTE]
 > **Native Restoration, Not Cross-Porting**:  

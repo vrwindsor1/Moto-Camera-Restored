@@ -41,13 +41,13 @@ def infer_camera_generation(device):
     soc = str(device.get('soc', '')).lower()
 
     if codename in CAM2_CODENAMES:
-        return "Moto Camera 2", "MotCamera 2 Recovery Suite"
+        return "Moto Camera 2", "Moto Camera 2 Recovery Suite"
     if codename in CAM3_CODENAMES:
-        return "Moto Camera 3", "MotCamera 3 Recovery Suite"
+        return "Moto Camera 3", "Moto Camera 3 Recovery Suite"
     if codename in CAM4_CODENAMES:
-        return "Moto Camera 4", "MotCamera 4 Recovery Suite"
+        return "Moto Camera 4", "Moto Camera 4 Recovery Suite"
     if codename in CAM5_CODENAMES:
-        return "Moto Camera 5", "MotCamera 5 Recovery Suite"
+        return "Moto Camera 5", "Moto Camera 5 Recovery Suite"
 
     # Fallback heuristics based on release year / SoC
     try:
@@ -56,13 +56,13 @@ def infer_camera_generation(device):
         year = 0
 
     if year >= 2023 or 'gen 2' in soc or 'gen 3' in soc or '8+ gen1' in soc:
-        return "Moto Camera 5", "MotCamera 5 Recovery Suite"
+        return "Moto Camera 5", "Moto Camera 5 Recovery Suite"
     elif year >= 2021 or '695' in soc or '778g' in soc or '680' in soc:
-        return "Moto Camera 4", "MotCamera 4 Recovery Suite"
+        return "Moto Camera 4", "Moto Camera 4 Recovery Suite"
     elif year >= 2019:
-        return "Moto Camera 3", "MotCamera 3 Recovery Suite"
+        return "Moto Camera 3", "Moto Camera 3 Recovery Suite"
     else:
-        return "Moto Camera 2", "MotCamera 2 Recovery Suite"
+        return "Moto Camera 2", "Moto Camera 2 Recovery Suite"
 
 def parse_lineage_devices(devices_dir):
     devices = []
