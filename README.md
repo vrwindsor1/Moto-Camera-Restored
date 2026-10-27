@@ -96,28 +96,47 @@ Ensure dynamic partition and filesystem extraction tools are installed:
 
 ### 2. Build the Recovery Package
 
+The compiler extracts your stock firmware, profiles your device hardware and Android release metadata, determines which camera generation is present (`camera4`, `camera5`, etc.), and dynamically resolves the matching recovery scaffolding templates.
+
+#### 📦 Modular Template Resolution
+* **Automatic Local Detection:** If you cloned the repository or have the `templates/<camera_gen>` folder in your working directory, the compiler automatically loads it without prompting.
+* **Missing Templates / Standalone Execution:** If you run the compiler standalone without the local `templates/` directory present, it will prompt:
+  ```text
+  [WARN] Recovery template folder for Moto Camera 4 ('templates/camera4') was not found in working directory.
+
+  Please point to a local template directory, or press [Enter] to automatically download from GitHub:
+  > Local template path [Enter to download]: 
+  ```
+  * **Press `[Enter]`:** Automatically downloads the required recovery template module from GitHub and saves it into `./templates/<camera_gen>/` with proper POSIX executable permissions (`toybox`, `update-binary`), caching it for future builds.
+  * **Enter a Local Path:** Point to an existing directory on disk containing your templates (such as an existing repository clone or template folder).
+
 #### Linux
 ```bash
 chmod +x compile_recovery_package_linux.sh
 
-# Interactive mode (prompts for firmware path):
+# Interactive mode (prompts for firmware path and template resolution):
 ./compile_recovery_package_linux.sh
 
 # CLI mode:
-./compile_recovery_package_linux.sh "/path/to/stock_firmware"
+./compile_recovery_package_linux.sh "/path/to/stock_firmware" [output_dir] [template_dir]
 ```
 
 #### Windows
 * **PowerShell:**
   ```powershell
-  .\compile_recovery_package_windows.ps1 -FirmwarePath "C:\path\to\stock_firmware"
-  ```
-* **Batch:**
-  Double-click `compile_recovery_package_windows.bat` and follow the prompts.
+  # Interactive mode:
+  .\compile_recovery_package_windows.ps1
 
-The compiled package will be placed in the `output/` directory:
+  # CLI mode:
+  .\compile_recovery_package_windows.ps1 -FirmwarePath "C:\path\to\stock_firmware" [-OutputDir "C:\output"] [-TemplateDir "C:\templates"]
+  ```
+* **Batch Launcher:**
+  Double-click `compile_recovery_package_windows.bat` (or run it via Command Prompt) and follow the interactive prompts.
+
+The compiled package and build manifest will be placed in the `output/` directory:
 ```text
 output/MotoCameraRestored_<device>_Recovery_Installer.zip
+output/MotoCameraRestored_<device>_info.txt
 ```
 
 ---
