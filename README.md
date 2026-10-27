@@ -6,6 +6,16 @@
   <a href="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml"><img src="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml/badge.svg?style=flat-square" alt="LineageOS Device Sync"></a>
 </p>
 
+<p align="center">
+  <img src="assets/motcamera2_logo.png" width="88" height="88" alt="Moto Camera 2" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/motcamera3_logo.png" width="88" height="88" alt="Moto Camera 3" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/motcamera4_logo.png" width="88" height="88" alt="Moto Camera 4" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/motcamera5_logo.png" width="88" height="88" alt="Moto Camera 5" />
+</p>
+
 An all-in-one universal recovery package compiler that extracts Motorola Camera suites (**Moto Camera 2, 3, 4, and 5**), companion AI services, vendor hardware abstraction layers (HALs), and multi-camera tuning libraries directly from official Motorola stock firmware and packages them into **flashable zip packages for recovery sideload** on custom ROMs.
 
 ---
