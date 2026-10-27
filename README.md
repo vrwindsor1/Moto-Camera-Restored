@@ -194,11 +194,9 @@ output/MotoCameraRestored_<device>_info.txt
 
 ## 🔄 OTA Survival (`addon.d`)
 
-The generated recovery package places an `addon.d` survival script in `/system/addon.d/` (or `/system_ext/addon.d/`). When you update your LineageOS or custom ROM build:
-1. The ROM updater backs up all restored camera apps, permissions, and HAL libraries.
-2. The ROM update is applied.
-3. The `addon.d` script automatically restores the camera files before rebooting.
-4. **No re-flashing required after ROM OTAs.**
+The generated recovery package places an `addon.d` survival script in `/system/addon.d/` (or `/system_ext/addon.d/`):
+* **No re-flashing required after routine ROM OTAs.**
+* **Major OS Revisions:** The package will need to be re-flashed after a major OS revision sideload, and all app settings, permissions, and data will be reset.
 
 ---
 
