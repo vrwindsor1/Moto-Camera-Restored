@@ -8,10 +8,6 @@ body:
       value: |
         ### Community Device Compatibility Report
         Thank you for testing **Moto Camera Restored**! Your report helps maintain our community hardware compatibility list.
-        
-        Before submitting, please make sure you have:
-        1. Taken a full backup in recovery before flashing.
-        2. Extracted files from official stock firmware matching your device model.
 
   - type: dropdown
     id: compiler_method
