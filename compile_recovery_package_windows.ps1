@@ -44,8 +44,8 @@ if (-not $OutputDir) {
 function Write-Header {
     Write-Host ""
     Write-Host "================================================================================" -ForegroundColor Cyan
-    Write-Host "        Moto Camera Restored -- Universal Recovery Package Compiler             " -ForegroundColor Cyan
-    Write-Host "         Modular Dynamic Multi-Generation Camera Extraction Toolkit             " -ForegroundColor Cyan
+    Write-Host "          Moto Camera Restored -- Universal Recovery Package Compiler           " -ForegroundColor Cyan
+    Write-Host "           Modular Dynamic Multi-Generation Camera Extraction Toolkit           " -ForegroundColor Cyan
     Write-Host "================================================================================" -ForegroundColor Cyan
     Write-Host "               * Pair Programmed with Google DeepMind Antigravity               " -ForegroundColor Magenta
     Write-Host "================================================================================" -ForegroundColor Cyan
@@ -670,7 +670,7 @@ try {
     $infoPath = Join-Path $AbsOutputDir ("MotoCameraRestored_" + $DeviceCodename + "_info.txt")
     $infoContent = @(
         "================================================================================",
-        "Moto Camera Restored -- Recovery Package Build Manifest",
+        "            Moto Camera Restored -- Recovery Package Build Manifest             ",
         "================================================================================",
         "Device Model:       $DeviceModel",
         "Device Codename:    $DeviceCodename",
@@ -691,7 +691,7 @@ try {
 
     Write-Host ""
     Write-Host "================================================================================" -ForegroundColor Green
-    Write-Host "          Universal Recovery Package Compiled Successfully!                     " -ForegroundColor Green
+    Write-Host "               Universal Recovery Package Compiled Successfully!                " -ForegroundColor Green
     Write-Host "================================================================================" -ForegroundColor Green
     Write-Host ""
     Write-Host "Target Device:" -ForegroundColor White

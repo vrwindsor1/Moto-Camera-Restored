@@ -57,10 +57,10 @@ log_profile() { echo -e "${C_PURPLE}[PROFILE]${C_RESET} $1"; }
 banner() {
   echo -e "${C_BOLD}${C_CYAN}"
   echo "================================================================================"
-  echo "        Moto Camera Restored — Universal Recovery Package Compiler              "
-  echo "         Modular Dynamic Multi-Generation Camera Extraction Toolkit             "
+  echo "           Moto Camera Restored — Universal Recovery Package Compiler           "
+  echo "           Modular Dynamic Multi-Generation Camera Extraction Toolkit           "
   echo "================================================================================"
-  echo -e "${C_PURPLE}              ⚡ Pair Programmed with Google DeepMind Antigravity               ${C_RESET}"
+  echo -e "${C_PURPLE}               ⚡ Pair Programmed with Google DeepMind Antigravity               ${C_RESET}"
   echo -e "${C_BOLD}${C_CYAN}================================================================================${C_RESET}"
   echo ""
 }
@@ -936,7 +936,7 @@ EOF
   local info_file="${abs_output_dir}/MotoCameraRestored_${DEVICE_CODENAME}_info.txt"
   cat <<EOF > "$info_file"
 ================================================================================
-Moto Camera Restored — Recovery Package Build Manifest
+             Moto Camera Restored — Recovery Package Build Manifest             
 ================================================================================
 Device Model:       ${DEVICE_MODEL}
 Device Codename:    ${DEVICE_CODENAME}
@@ -1013,7 +1013,7 @@ main() {
   local rec_zip="${abs_out_dir}/MotoCameraRestored_${DEVICE_CODENAME}_Recovery_Installer.zip"
   echo ""
   echo -e "${C_BOLD}${C_GREEN}================================================================================"
-  echo "          Universal Recovery Package Compiled Successfully!                     "
+  echo "               Universal Recovery Package Compiled Successfully!                "
   echo -e "================================================================================${C_RESET}"
   echo ""
   echo "Target Device:"
