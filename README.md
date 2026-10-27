@@ -59,12 +59,12 @@ We automatically track and synchronize our compatibility matrix with the officia
 
 ### 🔍 How to Identify Your Device's Camera Generation
 
-| Generation | Package Name | APK File(s) | Version Range | Stock Android Era | Key Identifying Features |
+| Generation | Package Name | APK File(s) | Version Range | Official Launch Window (Play Store) | Key Identifying Features |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Moto Camera 2** | `com.motorola.camera2` | `MotCamera2.apk` | `v5.x` – `v7.x` *(e.g. 7.2.x)* | Android 7 – 9 *(Nougat, Oreo, Pie)* | Classic circular carousel dial UI, quick-capture wrist twist gesture, early dual-lens depth slider. |
-| **Moto Camera 3** | `com.motorola.camera3` | `MotCamera3.apk` | `v7.x` – `v8.x` *(e.g. 8.0.x, 8.1.x)* | Android 10 – 11 *(Early MyUX)* | Modern flat UI layout with dedicated bottom mode drawer, integrated Google Lens shortcut, Spot Color and Cinemagraph modes. |
-| **Moto Camera 4** | `com.motorola.camera3` | `MotCamera3.apk` | `v9.x` *(e.g. 9.0.x, 9.1.x)* | Android 12 – 13 *(MyUX)* | Material You dynamic theming, companion AI engine (`camera.provider.ai`), multi-mic audio zoom, redesigned quick settings panel. |
-| **Moto Camera 5** | `com.motorola.camera5`<br>`com.motorola.camerapro`<br>`com.motorola.camera3` | `MotCamera5.apk`<br>`MotCameraPro.apk`<br>`MotCamera3.apk` | `v1.x` *(Pro/Cam5)* or `v10.x+` | Android 14 – 15+ *(Hello UI)* | Hello UI design language, Moto AI photo enhancement engine, Pro manual controls with focus peaking, zebra striping, action stabilization. |
+| **Moto Camera 2** | `com.motorola.camera2` | `MotCamera2.apk` | `v5.x` – `v7.x` *(e.g. 7.2.x)* | Select devices launched in **2016 – 2019** | Classic circular carousel dial UI, quick-capture wrist twist gesture, early dual-lens depth slider. |
+| **Moto Camera 3** | `com.motorola.camera3` | `MotCamera3.apk` | `v7.x` – `v8.x` *(e.g. 8.0.x, 8.1.x)* | Select devices launched in **2020 and beyond** | Modern flat UI layout with dedicated bottom mode drawer, integrated Google Lens shortcut, Spot Color and Cinemagraph modes. |
+| **Moto Camera 4** | `com.motorola.camera3` | `MotCamera3.apk` | `v9.x` *(e.g. 9.0.x, 9.1.x)* | Select devices launched in **2022 and beyond** | Material You dynamic theming, companion AI engine (`camera.provider.ai`), multi-mic audio zoom, redesigned quick settings panel. |
+| **Moto Camera 5 / Pro** | `com.motorola.camera5`<br>`com.motorola.camerapro`<br>`com.motorola.camera3` | `MotCamera5.apk`<br>`MotCameraPro.apk`<br>`MotCamera3.apk` | `v1.x` *(Pro/Cam5)* or `v10.x+` | Select devices launched in **2025 and beyond** | Hello UI design language, Moto AI photo enhancement engine, Pro manual controls with focus peaking, zebra striping, action stabilization. |
 
 > [!TIP]
 > **How to verify your stock camera generation:**  
