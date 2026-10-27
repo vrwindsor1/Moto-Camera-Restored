@@ -1,7 +1,7 @@
 # Device Compatibility Matrix
 
 > **Automatic Sync:** This table is automatically generated and synchronized with the official [LineageOS Wiki](https://github.com/LineageOS/lineage_wiki) repository via GitHub Actions.  
-> **Last Updated:** `2026-10-27 16:39:59 UTC`  
+> **Last Updated:** `2026-10-27 16:50:00 UTC`  
 > **Total Motorola Devices Tracked:** `97` (`61` actively maintained, `36` discontinued)
 
 ---
@@ -60,7 +60,7 @@ Devices listed here have active LineageOS maintainers and up-to-date trees. Sinc
 | [**moto g pure**](reports/ellis.md) | `ellis` | 24.0 | Moto Camera 3 | ❔ Untested |
 | [**moto g stylus 5G**](reports/denver.md) | `denver` | 24.0 | Moto Camera 3 | ❔ Untested |
 | [**moto g stylus 5G (2022)**](reports/milanf.md) | `milanf` | 24.0 | Moto Camera 4 | ❔ Untested |
-| [**moto g stylus 5G (2023)**](reports/genevn.md) | `genevn` | 24.0 | Moto Camera 4 | 🟢 Works Perfectly |
+| [**moto g stylus 5G (2023)**](reports/genevn.md) | `genevn` | 24.0 | Moto Camera 4 | ❔ Untested |
 | [**moto g05**](reports/lamu.md) | `lamu` | 24.0 | Moto Camera 5 | ❔ Untested |
 | [**moto g10**](reports/capri.md) | `capri` | 24.0 | Moto Camera 3 | ❔ Untested |
 | [**moto g10 power**](reports/capri.md) | `capri` | 24.0 | Moto Camera 3 | ❔ Untested |
