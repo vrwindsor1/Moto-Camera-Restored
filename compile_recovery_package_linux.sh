@@ -60,7 +60,7 @@ banner() {
   echo "        Moto Camera Restored — Universal Recovery Package Compiler              "
   echo "         Modular Dynamic Multi-Generation Camera Extraction Toolkit             "
   echo "================================================================================"
-  echo -e "${C_PURPLE}   ⚡ Pair Programmed with Google DeepMind Antigravity                         ${C_RESET}"
+  echo -e "${C_PURPLE}              ⚡ Pair Programmed with Google DeepMind Antigravity               ${C_RESET}"
   echo -e "${C_BOLD}${C_CYAN}================================================================================${C_RESET}"
   echo ""
 }
