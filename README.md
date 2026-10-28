@@ -3,7 +3,7 @@
 <p align="center">
   <a href="https://deepmind.google"><img src="https://img.shields.io/badge/Pair%20Programmed%20With-Google%20DeepMind%20Antigravity-blueviolet?style=flat-square&logo=google" alt="Pair Programmed With Google DeepMind Antigravity"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square" alt="License"></a>
-  <a href="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml"><img src="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml/badge.svg?style=flat-square" alt="LineageOS Device Sync"></a>
+  <a href="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml"><img src="https://github.com/vrwindsor1/Moto-Camera-Restored/actions/workflows/update-devices.yml/badge.svg?branch=main&style=flat-square" alt="LineageOS Device Sync"></a>
 </p>
 
 <p align="center">
