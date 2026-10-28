@@ -953,11 +953,121 @@ EOF
   rm -f "$REC_ZIP"
   (cd "$rec_build" && zip -r9q "$REC_ZIP" .)
 
-  # Extract list of harvested files from staging
+  # Extract list of harvested files from staging with version info
   local extracted_files_list=""
   local extracted_count=0
   if [ -d "${staging_dir}/system" ]; then
-    extracted_files_list=$(cd "${staging_dir}" && find system -type f | sort | sed 's|^system|/system|')
+    if command -v python3 &>/dev/null; then
+      extracted_files_list=$(python3 -c "
+import os, sys, re, struct, zipfile
+
+staging_dir = sys.argv[1]
+sys_root = os.path.join(staging_dir, 'system')
+
+def get_file_version(filepath):
+    filename = os.path.basename(filepath)
+
+    m = re.search(r'@([0-9]+(?:\.[0-9]+)+)', filename)
+    if m:
+        return f'v{m.group(1)}'
+    m_v = re.search(r'[-_]v([0-9]+(?:\.[0-9]+)*)', filename, re.IGNORECASE)
+    if m_v:
+        return f'v{m_v.group(1)}'
+    m_so = re.search(r'\.so\.([0-9]+(?:\.[0-9]+)*)$', filename)
+    if m_so:
+        return f'v{m_so.group(1)}'
+
+    if filename.endswith('.apk'):
+        try:
+            with zipfile.ZipFile(filepath, 'r') as z:
+                if 'AndroidManifest.xml' in z.namelist():
+                    data = z.read('AndroidManifest.xml')
+                    if len(data) > 36:
+                        res_type, h_size, c_size = struct.unpack('<HHI', data[:8])
+                        if res_type == 0x0003:
+                            sp_type, sp_h_size, sp_size = struct.unpack('<HHI', data[8:16])
+                            if sp_type == 0x0001:
+                                count, scount, flags, s_start, styles_start = struct.unpack('<IIIII', data[16:36])
+                                is_utf8 = (flags & (1 << 8)) != 0
+                                offsets = [struct.unpack('<I', data[36+i*4:40+i*4])[0] for i in range(count)]
+                                sp_data = data[8+s_start:]
+                                strings = []
+                                for off in offsets:
+                                    try:
+                                        if is_utf8:
+                                            idx = off
+                                            u16_l = sp_data[idx]
+                                            idx += 1
+                                            if u16_l & 0x80: idx += 1
+                                            u8_l = sp_data[idx]
+                                            idx += 1
+                                            if u8_l & 0x80:
+                                                u8_l = ((u8_l & 0x7f) << 8) | sp_data[idx]
+                                                idx += 1
+                                            strings.append(sp_data[idx:idx+u8_l].decode('utf-8', errors='ignore'))
+                                        else:
+                                            u16_l = struct.unpack('<H', sp_data[off:off+2])[0]
+                                            strings.append(sp_data[off+2:off+2+u16_l*2].decode('utf-16le', errors='ignore'))
+                                    except Exception:
+                                        pass
+                                candidates = [s for s in strings if re.match(r'^[0-9]+(\.[0-9]+)+', s)]
+                                if candidates:
+                                    return f'v{candidates[0]}'
+                for dex_name in ['classes.dex', 'classes2.dex']:
+                    if dex_name in z.namelist():
+                        dex = z.read(dex_name)
+                        m_dex = re.findall(rb'([0-9]+\.[0-9]+(?:\.[0-9]+)+)', dex)
+                        for match in m_dex:
+                            s = match.decode('ascii', errors='ignore')
+                            if len(s) >= 3 and not s.startswith('0.0.0'):
+                                return f'v{s}'
+        except Exception:
+            pass
+
+    if filename.endswith('.jar'):
+        try:
+            with zipfile.ZipFile(filepath, 'r') as z:
+                if 'META-INF/MANIFEST.MF' in z.namelist():
+                    mf = z.read('META-INF/MANIFEST.MF').decode('utf-8', errors='ignore')
+                    m_mf = re.search(r'(?:Implementation-Version|Bundle-Version|Specification-Version):\s*([0-9]+(?:\.[0-9]+)*)', mf, re.IGNORECASE)
+                    if m_mf:
+                        return f'v{m_mf.group(1)}'
+        except Exception:
+            pass
+
+    if filename.endswith('.xml'):
+        try:
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+                m_xml = re.search(r'<version>([0-9]+(?:\.[0-9]+)+)</version>', content)
+                if m_xml:
+                    return f'v{m_xml.group(1)}'
+        except Exception:
+            pass
+
+    return None
+
+if not os.path.exists(sys_root):
+    sys.exit(0)
+
+file_list = []
+for root, dirs, files in os.walk(sys_root):
+    for f in sorted(files):
+        p = os.path.join(root, f)
+        rel_path = '/' + os.path.relpath(p, staging_dir)
+        ver = get_file_version(p)
+        if ver:
+            file_list.append(f'{rel_path}  [{ver}]')
+        else:
+            file_list.append(rel_path)
+
+file_list.sort()
+for item in file_list:
+    print(item)
+" "$staging_dir" 2>/dev/null)
+    else
+      extracted_files_list=$(cd "${staging_dir}" && find system -type f | sort | sed 's|^system|/system|')
+    fi
     extracted_count=$(echo "$extracted_files_list" | grep -c . || echo "0")
   fi
 
