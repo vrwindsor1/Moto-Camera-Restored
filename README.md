@@ -172,8 +172,8 @@ chmod +x compile_recovery_package_linux.sh
 
 The compiled package and build manifest will be placed in the `output/` directory:
 ```text
-output/MotoCameraRestored_<device>_Recovery_Installer.zip
-output/MotoCameraRestored_<device>_info.txt
+output/MotoCameraRestored_<device>_<build_version>_Recovery_Installer.zip
+output/MotoCameraRestored_<device>_<build_version>_Recovery_Installer.txt
 ```
 
 ---
@@ -185,7 +185,7 @@ output/MotoCameraRestored_<device>_info.txt
    * **TWRP / OrangeFox:** Select **Advanced** $\rightarrow$ **ADB Sideload** (swipe to confirm).
 3. Connect the device to your PC via USB and execute:
    ```bash
-   adb sideload output/MotoCameraRestored_<device>_Recovery_Installer.zip
+   adb sideload output/MotoCameraRestored_<device>_<build_version>_Recovery_Installer.zip
    ```
 4. If Lineage Recovery prompts about signature verification failing, choose **Install anyway** (expected for custom packages).
 5. Once sideloading completes successfully, select **Reboot system now**.

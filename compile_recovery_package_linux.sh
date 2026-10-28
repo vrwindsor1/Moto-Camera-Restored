@@ -20,7 +20,8 @@
 #   * Multi-camera sensor configuration and auxiliary camera system properties
 #
 # Generates:
-#   MotoCameraRestored_<Codename>_Recovery_Installer.zip (Lineage Recovery / TWRP sideload)
+#   MotoCameraRestored_<Codename>_<BuildVersion>_Recovery_Installer.zip (Lineage Recovery / TWRP sideload)
+#   MotoCameraRestored_<Codename>_<BuildVersion>_Recovery_Installer.txt (Harvested file manifest & metadata)
 #   with LineageOS addon.d OTA backup survival script
 #
 # Usage:
@@ -361,20 +362,29 @@ profile_device() {
               read_prop "ro.product.build.version.sdk" "${PROP_FILES[@]}" || \
               read_prop "ro.system.build.version.sdk" "${PROP_FILES[@]}" || echo "34")
 
+  BUILD_DISPLAY_ID=$(read_prop "ro.build.display.id" "${PROP_FILES[@]}" || \
+                     read_prop "ro.mot.build.version.release" "${PROP_FILES[@]}" || \
+                     read_prop "ro.build.version.full" "${PROP_FILES[@]}" || echo "")
+
   BUILD_ID=$(read_prop "ro.build.id" "${PROP_FILES[@]}" || \
              read_prop "ro.product.build.id" "${PROP_FILES[@]}" || \
-             read_prop "ro.system.build.id" "${PROP_FILES[@]}" || echo "UNKNOWN")
+             read_prop "ro.system.build.id" "${PROP_FILES[@]}" || echo "")
+
+  ROM_BUILD_VERSION="${BUILD_DISPLAY_ID:-$BUILD_ID}"
+  [ -z "$ROM_BUILD_VERSION" ] && ROM_BUILD_VERSION="UNKNOWN"
+  [ -z "$BUILD_ID" ] && BUILD_ID="$ROM_BUILD_VERSION"
 
   PLATFORM_SOC=$(read_prop "ro.board.platform" "${PROP_FILES[@]}" || \
                  read_prop "ro.hardware" "${PROP_FILES[@]}" || \
                  read_prop "ro.product.board" "${PROP_FILES[@]}" || echo "unknown")
 
   log_profile "Detected Stock Firmware Profile:"
-  echo -e "    ${C_BOLD}Model:${C_RESET}       ${DEVICE_MODEL}"
-  echo -e "    ${C_BOLD}Codename:${C_RESET}    ${DEVICE_CODENAME}"
-  echo -e "    ${C_BOLD}Platform:${C_RESET}    ${PLATFORM_SOC}"
-  echo -e "    ${C_BOLD}Android:${C_RESET}     ${ANDROID_VERSION} (API SDK ${SDK_LEVEL})"
-  echo -e "    ${C_BOLD}Build ID:${C_RESET}    ${BUILD_ID}"
+  echo -e "    ${C_BOLD}Model:${C_RESET}         ${DEVICE_MODEL}"
+  echo -e "    ${C_BOLD}Codename:${C_RESET}      ${DEVICE_CODENAME}"
+  echo -e "    ${C_BOLD}Platform:${C_RESET}      ${PLATFORM_SOC}"
+  echo -e "    ${C_BOLD}Android:${C_RESET}       ${ANDROID_VERSION} (API SDK ${SDK_LEVEL})"
+  echo -e "    ${C_BOLD}Build Version:${C_RESET} ${ROM_BUILD_VERSION}"
+  [ "$ROM_BUILD_VERSION" != "$BUILD_ID" ] && [ -n "$BUILD_ID" ] && echo -e "    ${C_BOLD}Build ID:${C_RESET}      ${BUILD_ID}"
 }
 
 # ------------------------------------------------------------------------------
@@ -927,31 +937,64 @@ EOF
   # Embed device properties file inside package root
   cp -f "$camera_prop" "${rec_build}/motocamera.prop"
 
-  # Package flashable recovery ZIP
-  local rec_zip="${abs_output_dir}/MotoCameraRestored_${DEVICE_CODENAME}_Recovery_Installer.zip"
-  rm -f "$rec_zip"
-  (cd "$rec_build" && zip -r9q "$rec_zip" .)
+  # Determine sanitized package base name including firmware build version
+  local clean_build_ver
+  clean_build_ver=$(echo "$ROM_BUILD_VERSION" | sed 's/[^a-zA-Z0-9._-]/_/g' | sed 's/__*/_/g')
+  if [ -n "$clean_build_ver" ] && [ "$clean_build_ver" != "UNKNOWN" ]; then
+    BASE_PACKAGE_NAME="MotoCameraRestored_${DEVICE_CODENAME}_${clean_build_ver}_Recovery_Installer"
+  else
+    BASE_PACKAGE_NAME="MotoCameraRestored_${DEVICE_CODENAME}_Recovery_Installer"
+  fi
 
-  # Write metadata summary text
-  local info_file="${abs_output_dir}/MotoCameraRestored_${DEVICE_CODENAME}_info.txt"
-  cat <<EOF > "$info_file"
+  REC_ZIP="${abs_output_dir}/${BASE_PACKAGE_NAME}.zip"
+  INFO_FILE="${abs_output_dir}/${BASE_PACKAGE_NAME}.txt"
+
+  # Package flashable recovery ZIP
+  rm -f "$REC_ZIP"
+  (cd "$rec_build" && zip -r9q "$REC_ZIP" .)
+
+  # Extract list of harvested files from staging
+  local extracted_files_list=""
+  local extracted_count=0
+  if [ -d "${staging_dir}/system" ]; then
+    extracted_files_list=$(cd "${staging_dir}" && find system -type f | sort | sed 's|^system|/system|')
+    extracted_count=$(echo "$extracted_files_list" | grep -c . || echo "0")
+  fi
+
+  # Write metadata summary text and harvested file manifest
+  cat <<EOF > "$INFO_FILE"
 ================================================================================
              Moto Camera Restored — Recovery Package Build Manifest             
 ================================================================================
-Device Model:       ${DEVICE_MODEL}
-Device Codename:    ${DEVICE_CODENAME}
-Hardware Platform:  ${PLATFORM_SOC}
-Android Version:    ${ANDROID_VERSION} (API SDK ${SDK_LEVEL})
-Stock Build ID:     ${BUILD_ID}
-Camera Generation:  ${CAMERA_GEN_NAME} (${CAMERA_VER})
-Template Module:    ${CAMERA_GEN}
-Installer ZIP:      ${rec_zip##*/}
-Build Timestamp:    $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+Target Device:
+  Model:                ${DEVICE_MODEL}
+  Codename:             ${DEVICE_CODENAME}
+  Hardware Platform:    ${PLATFORM_SOC}
+
+Firmware Build Info:
+  Android Version:      ${ANDROID_VERSION} (API SDK ${SDK_LEVEL})
+  Stock Firmware Build: ${ROM_BUILD_VERSION}
+  Stock Build ID:       ${BUILD_ID}
+
+Restored Camera Suite:
+  Generation:           ${CAMERA_GEN_NAME} (${CAMERA_VER})
+  Template Module:      templates/${CAMERA_GEN}
+
+Package Outputs:
+  Recovery ZIP:         ${REC_ZIP##*/}
+  Build Manifest:       ${INFO_FILE##*/}
+  Build Timestamp:      $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+  Extracted Files:      ${extracted_count} harvested from stock firmware
+================================================================================
+
+Harvested Files Extracted from Stock Firmware:
+--------------------------------------------------------------------------------
+${extracted_files_list:-  (None)}
 ================================================================================
 EOF
 
-  log_ok "Recovery Installer created: $rec_zip ($(du -h "$rec_zip" | cut -f1))"
-  log_ok "Build manifest saved: $info_file"
+  log_ok "Recovery Installer created: $REC_ZIP ($(du -h "$REC_ZIP" | cut -f1))"
+  log_ok "Build manifest saved:       $INFO_FILE"
 }
 
 # ------------------------------------------------------------------------------
@@ -1010,26 +1053,27 @@ main() {
 
   build_recovery_package "$staging_dir" "$abs_out_dir" "$WORK_DIR" "$camera_prop"
 
-  local rec_zip="${abs_out_dir}/MotoCameraRestored_${DEVICE_CODENAME}_Recovery_Installer.zip"
   echo ""
   echo -e "${C_BOLD}${C_GREEN}================================================================================"
   echo "               Universal Recovery Package Compiled Successfully!                "
   echo -e "================================================================================${C_RESET}"
   echo ""
   echo "Target Device:"
-  echo "  --> Model:      ${DEVICE_MODEL}"
-  echo "  --> Codename:   ${DEVICE_CODENAME}"
-  echo "  --> Generation: ${CAMERA_GEN_NAME} (${CAMERA_VER})"
-  echo "  --> Module:     templates/${CAMERA_GEN}"
+  echo "  --> Model:         ${DEVICE_MODEL}"
+  echo "  --> Codename:      ${DEVICE_CODENAME}"
+  echo "  --> Stock Build:   ${ROM_BUILD_VERSION}"
+  echo "  --> Generation:    ${CAMERA_GEN_NAME} (${CAMERA_VER})"
+  echo "  --> Module:        templates/${CAMERA_GEN}"
   echo ""
-  echo "Installer Package:"
-  echo "  --> ${rec_zip}"
+  echo "Package Outputs:"
+  echo "  --> ZIP:           ${REC_ZIP}"
+  echo "  --> Manifest:      ${INFO_FILE}"
   echo ""
   echo "How to install via Lineage Recovery / TWRP / OrangeFox:"
   echo "  1. Reboot your phone into Recovery mode."
   echo "  2. Select 'Apply Update' -> 'Apply from ADB' (or 'Install' in TWRP/OrangeFox)."
   echo "  3. From your PC terminal, run:"
-  echo "       adb sideload \"${rec_zip}\""
+  echo "       adb sideload \"${REC_ZIP}\""
   echo "  4. If prompted with 'Signature verification failed. Install anyway?', select 'Yes'."
   echo "  5. Reboot system. Native ${CAMERA_GEN_NAME} is restored and ready to use!"
   echo ""
