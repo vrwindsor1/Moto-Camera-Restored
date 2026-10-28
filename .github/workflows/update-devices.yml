@@ -15,6 +15,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Checkout LineageOS Wiki
         uses: actions/checkout@v4
@@ -41,10 +44,15 @@ jobs:
         run: rm -rf lineage_wiki
 
       - name: Commit & Push Changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore(compatibility): auto-update per-device compatibility table [skip ci]"
-          file_pattern: "COMPATIBILITY.md reports/* .github/ISSUE_TEMPLATE/compatibility_report.yml"
-          commit_user_name: "github-actions[bot]"
-          commit_user_email: "41898282+github-actions[bot]@users.noreply.github.com"
-          commit_author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+        run: |
+          git add -A COMPATIBILITY.md reports/ .github/ISSUE_TEMPLATE/compatibility_report.yml
+          if git diff --cached --quiet; then
+            echo "No changes detected in compatibility files."
+          else
+            echo "Changes detected in compatibility files. Committing..."
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore(compatibility): auto-update per-device compatibility table [skip ci]"
+            git pull --rebase origin main || true
+            git push origin main
+          fi
