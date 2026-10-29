@@ -26,16 +26,28 @@ case "$1" in
   post-restore)
     for i in $(list_files); do
       f=$(get_output_path "$S/$i")
-      chown root:root $f 2>/dev/null
+      [ -e "$f" ] || continue
+      chown 0:0 "$f" 2>/dev/null
+      d=$(dirname "$f")
+      chmod 0755 "$d" 2>/dev/null
       case "$i" in
         *bin/*|*addon.d/*|*.sh)
-          chmod 755 $f 2>/dev/null
+          chmod 0755 "$f" 2>/dev/null
           ;;
         *)
-          chmod 644 $f 2>/dev/null
+          chmod 0644 "$f" 2>/dev/null
           ;;
       esac
-      chmod 755 $(dirname $f) 2>/dev/null
+      case "$i" in
+        lib/*|lib64/*|product/lib/*|product/lib64/*|system_ext/lib/*|system_ext/lib64/*)
+          chcon -h u:object_r:system_lib_file:s0 "$d" 2>/dev/null || true
+          chcon -h u:object_r:system_lib_file:s0 "$f" 2>/dev/null || true
+          ;;
+        *)
+          chcon -h u:object_r:system_file:s0 "$d" 2>/dev/null || true
+          chcon -h u:object_r:system_file:s0 "$f" 2>/dev/null || true
+          ;;
+      esac
     done
   ;;
 esac

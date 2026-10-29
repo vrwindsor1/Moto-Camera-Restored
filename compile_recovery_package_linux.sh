@@ -678,64 +678,81 @@ ensure_templates() {
     fi
   fi
 
+  local required_schema="TEMPLATE_SCHEMA_VERSION=2"
   local local_dir="${SCRIPT_DIR}/templates/${camera_gen}"
   local cwd_dir="$(pwd)/templates/${camera_gen}"
+  local refresh_stale=0
+  local stale_target_dir=""
 
   # 2. Check local script directory path
   if [ -d "$local_dir" ] && [ -f "${local_dir}/META-INF/com/google/android/update-binary" ]; then
-    TEMPLATES_DIR="$local_dir"
-    log_ok "Found local recovery templates for ${gen_name} (${camera_gen})."
-    return 0
-  fi
-
-  # 3. Check current working directory path
-  if [ -d "$cwd_dir" ] && [ -f "${cwd_dir}/META-INF/com/google/android/update-binary" ]; then
-    TEMPLATES_DIR="$cwd_dir"
-    log_ok "Found local recovery templates for ${gen_name} (${camera_gen})."
-    return 0
-  fi
-
-  # 4. Template folder not present in working directory -> Prompt the user
-  log_warn "Recovery template folder for ${gen_name} ('templates/${camera_gen}') was not found in working directory."
-
-  local user_input=""
-  echo ""
-  echo -e "${C_BOLD}Please point to a local template directory, or press [Enter] to automatically download from GitHub:${C_RESET}"
-  if [ -t 0 ]; then
-    read -e -p "> Local template path [Enter to download]: " user_input
-  else
-    read -r user_input || user_input=""
-  fi
-  user_input="$(echo "$user_input" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-  while [[ "$user_input" =~ ^[\'\"](.*)[\'\"]$ ]]; do
-    user_input="${BASH_REMATCH[1]}"
-    user_input="$(echo "$user_input" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-  done
-  user_input="${user_input/#\~/$HOME}"
-
-  if [ -n "$user_input" ]; then
-    local candidate_path=""
-    if [ -f "${user_input}/META-INF/com/google/android/update-binary" ]; then
-      candidate_path="$user_input"
-    elif [ -f "${user_input}/${camera_gen}/META-INF/com/google/android/update-binary" ]; then
-      candidate_path="${user_input}/${camera_gen}"
-    elif [ -f "${user_input}/templates/${camera_gen}/META-INF/com/google/android/update-binary" ]; then
-      candidate_path="${user_input}/templates/${camera_gen}"
-    fi
-
-    if [ -n "$candidate_path" ]; then
-      TEMPLATES_DIR="$(cd "$candidate_path" && pwd)"
-      log_ok "Using user-specified recovery templates from: $TEMPLATES_DIR"
+    if grep -q "$required_schema" "${local_dir}/META-INF/com/google/android/update-binary" 2>/dev/null; then
+      TEMPLATES_DIR="$local_dir"
+      log_ok "Found local recovery templates for ${gen_name} (${camera_gen})."
       return 0
     else
-      log_warn "Specified directory did not contain valid recovery templates for ${gen_name}."
-      log_info "Proceeding with automatic download from GitHub..."
+      log_warn "Outdated recovery template detected in '${local_dir}'; refreshing latest templates from GitHub..."
+      refresh_stale=1
+      stale_target_dir="$local_dir"
+    fi
+  fi
+
+  # 3. Check current working directory path (if distinct from script directory)
+  if [ "$cwd_dir" != "$local_dir" ] && [ -d "$cwd_dir" ] && [ -f "${cwd_dir}/META-INF/com/google/android/update-binary" ]; then
+    if grep -q "$required_schema" "${cwd_dir}/META-INF/com/google/android/update-binary" 2>/dev/null; then
+      TEMPLATES_DIR="$cwd_dir"
+      log_ok "Found local recovery templates for ${gen_name} (${camera_gen})."
+      return 0
+    else
+      log_warn "Outdated recovery template detected in '${cwd_dir}'; refreshing latest templates from GitHub..."
+      refresh_stale=1
+      stale_target_dir="$cwd_dir"
+    fi
+  fi
+
+  # 4. Template folder not present in working directory -> Prompt the user (unless auto-refreshing stale cache)
+  if [ "$refresh_stale" -eq 0 ]; then
+    log_warn "Recovery template folder for ${gen_name} ('templates/${camera_gen}') was not found in working directory."
+
+    local user_input=""
+    echo ""
+    echo -e "${C_BOLD}Please point to a local template directory, or press [Enter] to automatically download from GitHub:${C_RESET}"
+    if [ -t 0 ]; then
+      read -e -p "> Local template path [Enter to download]: " user_input
+    else
+      read -r user_input || user_input=""
+    fi
+    user_input="$(echo "$user_input" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    while [[ "$user_input" =~ ^[\'\"](.*)[\'\"]$ ]]; do
+      user_input="${BASH_REMATCH[1]}"
+      user_input="$(echo "$user_input" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    done
+    user_input="${user_input/#\~/$HOME}"
+
+    if [ -n "$user_input" ]; then
+      local candidate_path=""
+      if [ -f "${user_input}/META-INF/com/google/android/update-binary" ]; then
+        candidate_path="$user_input"
+      elif [ -f "${user_input}/${camera_gen}/META-INF/com/google/android/update-binary" ]; then
+        candidate_path="${user_input}/${camera_gen}"
+      elif [ -f "${user_input}/templates/${camera_gen}/META-INF/com/google/android/update-binary" ]; then
+        candidate_path="${user_input}/templates/${camera_gen}"
+      fi
+
+      if [ -n "$candidate_path" ]; then
+        TEMPLATES_DIR="$(cd "$candidate_path" && pwd)"
+        log_ok "Using user-specified recovery templates from: $TEMPLATES_DIR"
+        return 0
+      else
+        log_warn "Specified directory did not contain valid recovery templates for ${gen_name}."
+        log_info "Proceeding with automatic download from GitHub..."
+      fi
     fi
   fi
 
   # 5. Remote download from GitHub repository
   log_info "Downloading ${gen_name} recovery templates from GitHub repository..."
-  local dest_base="./templates/${camera_gen}"
+  local dest_base="${stale_target_dir:-./templates/${camera_gen}}"
   if mkdir -p "${dest_base}/META-INF/com/google/android" "${dest_base}/addon.d" 2>/dev/null && \
      touch "${dest_base}/.write_probe" 2>/dev/null; then
     rm -f "${dest_base}/.write_probe" 2>/dev/null || true
@@ -759,22 +776,14 @@ ensure_templates() {
     local dest="${TEMPLATES_DIR}/${rel_dest}"
     mkdir -p "$(dirname "$dest")"
     local url="${GITHUB_RAW_BASE}/${file}"
-    local fallback_url=""
-    if [ "$camera_gen" = "camera4" ]; then
-      fallback_url="https://raw.githubusercontent.com/vrwindsor1/Universal_MotCamera4Suite_Installer/main/templates/recovery/${rel_dest}"
-    fi
 
     local dl_ok=0
     if command -v curl &>/dev/null; then
       if curl -sSfL "$url" -o "$dest" 2>/dev/null; then
         dl_ok=1
-      elif [ -n "$fallback_url" ] && curl -sSfL "$fallback_url" -o "$dest" 2>/dev/null; then
-        dl_ok=1
       fi
     elif command -v wget &>/dev/null; then
       if wget -q "$url" -O "$dest" 2>/dev/null; then
-        dl_ok=1
-      elif [ -n "$fallback_url" ] && wget -q "$fallback_url" -O "$dest" 2>/dev/null; then
         dl_ok=1
       fi
     else
@@ -859,6 +868,201 @@ EOF
 # ------------------------------------------------------------------------------
 # 8. Proprietary Component Harvester
 # ------------------------------------------------------------------------------
+strip_redundant_oat_if_dex_present() {
+  local app_dir="$1"
+  [ -d "$app_dir" ] || return 0
+
+  while IFS= read -r -d $'\0' apk_file; do
+    [ -f "$apk_file" ] || continue
+    local has_dex=0
+    if command -v python3 &>/dev/null; then
+      if python3 -c 'import sys, zipfile; z=zipfile.ZipFile(sys.argv[1]); sys.exit(0 if any(n.endswith(".dex") for n in z.namelist()) else 1)' "$apk_file" 2>/dev/null; then
+        has_dex=1
+      fi
+    elif command -v unzip &>/dev/null; then
+      if unzip -l "$apk_file" 2>/dev/null | grep -q 'classes.*\.dex'; then
+        has_dex=1
+      fi
+    fi
+    if [ "$has_dex" -eq 1 ]; then
+      rm -rf "$(dirname "$apk_file")/oat" 2>/dev/null || true
+    fi
+  done < <(find "$app_dir" -maxdepth 2 -type f -name "*.apk" -print0 2>/dev/null)
+}
+
+validate_and_fix_staged_configs() {
+  local src_root="$1"
+  local staging_dir="$2"
+
+  command -v python3 &>/dev/null || return 0
+
+  python3 - "$src_root" "$staging_dir" <<'PY'
+import os, re, shutil, struct, sys, xml.etree.ElementTree as ET, zipfile
+
+src_root = sys.argv[1]
+staging_dir = sys.argv[2]
+
+def get_apk_package_and_perms(apk_path):
+    try:
+        with zipfile.ZipFile(apk_path, "r") as zf:
+            data = zf.read("AndroidManifest.xml")
+    except Exception:
+        return None, []
+    if len(data) < 8:
+        return None, []
+    f_type, f_hsize, _ = struct.unpack_from("<HHI", data, 0)
+    if f_type != 0x0003:
+        return None, []
+    pos = f_hsize
+    strings = []
+    pkg_name = None
+    uses_perms = []
+    while pos + 8 <= len(data):
+        c_type, c_hsize, c_size = struct.unpack_from("<HHI", data, pos)
+        if c_size < 8 or pos + c_size > len(data):
+            break
+        if c_type == 0x0001 and c_size >= 28:
+            scount, _, flags, s_start, _ = struct.unpack_from("<IIIII", data, pos + 8)
+            is_utf8 = (flags & (1 << 8)) != 0
+            offsets_base = pos + c_hsize
+            sp_base = pos + s_start
+            for i in range(scount):
+                if offsets_base + (i + 1) * 4 > pos + c_size:
+                    break
+                off = struct.unpack_from("<I", data, offsets_base + i * 4)[0]
+                idx = sp_base + off
+                try:
+                    if is_utf8:
+                        u16_l = data[idx]; idx += 2 if (u16_l & 0x80) else 1
+                        u8_l = data[idx]; idx += 1
+                        if u8_l & 0x80:
+                            u8_l = ((u8_l & 0x7f) << 8) | data[idx]; idx += 1
+                        strings.append(data[idx:idx + u8_l].decode("utf-8", errors="ignore"))
+                    else:
+                        u16_l = struct.unpack_from("<H", data, idx)[0]; idx += 2
+                        if u16_l & 0x8000:
+                            u16_l = ((u16_l & 0x7fff) << 16) | struct.unpack_from("<H", data, idx)[0]; idx += 2
+                        strings.append(data[idx:idx + u16_l * 2].decode("utf-16le", errors="ignore"))
+                except Exception:
+                    strings.append("")
+        elif c_type == 0x0102 and pos + c_hsize + 20 <= len(data):
+            _, name_idx, attr_start, attr_size, attr_count = struct.unpack_from("<IIHHH", data, pos + c_hsize)
+            tag = strings[name_idx] if name_idx < len(strings) else ""
+            if tag in ("manifest", "uses-permission", "uses-permission-sdk-23"):
+                attr_base = pos + c_hsize + attr_start
+                attrs = {}
+                for i in range(attr_count):
+                    ap = attr_base + i * attr_size
+                    if ap + 20 > pos + c_size:
+                        break
+                    _, a_name, a_raw, _, _, a_dtype, a_data = struct.unpack_from("<IIIHBBI", data, ap)
+                    k = strings[a_name] if a_name < len(strings) else ""
+                    v = ""
+                    if a_raw != 0xFFFFFFFF and a_raw < len(strings):
+                        v = strings[a_raw]
+                    elif a_dtype == 0x03 and a_data < len(strings):
+                        v = strings[a_data]
+                    if k:
+                        attrs[k] = v
+                if tag == "manifest" and attrs.get("package"):
+                    pkg_name = attrs["package"].strip()
+                elif tag in ("uses-permission", "uses-permission-sdk-23") and attrs.get("name"):
+                    uses_perms.append(attrs["name"].strip())
+        pos += c_size
+    return pkg_name, uses_perms
+
+# 1. Verify privapp-permissions XMLs match exact APK package names
+#    (e.g. milanf stock ImagerTuning-V5.apk uses package="com.motorola.imagertuning_V5"
+#     while stock XML mistakenly specifies package="com.motorola.imagertuning5")
+for part in ("product", "system_ext"):
+    priv_dir = os.path.join(staging_dir, "system", part, "priv-app")
+    perm_dir = os.path.join(staging_dir, "system", part, "etc", "permissions")
+    if not os.path.isdir(priv_dir):
+        continue
+    os.makedirs(perm_dir, exist_ok=True)
+
+    declared_pkgs = {}
+    for fn in sorted(os.listdir(perm_dir)):
+        if not fn.endswith(".xml"):
+            continue
+        fpath = os.path.join(perm_dir, fn)
+        try:
+            tree = ET.parse(fpath)
+            for elem in tree.getroot().findall(".//privapp-permissions"):
+                p = elem.attrib.get("package", "").strip()
+                if p:
+                    perms = [c.attrib.get("name", "").strip() for c in elem.findall("permission") if c.attrib.get("name")]
+                    declared_pkgs[p] = (fpath, perms)
+        except Exception:
+            pass
+
+    for root_d, _, files in os.walk(priv_dir):
+        for fn in files:
+            if not fn.endswith(".apk"):
+                continue
+            pkg, uses_perms = get_apk_package_and_perms(os.path.join(root_d, fn))
+            if not pkg or pkg in declared_pkgs:
+                continue
+            # Check for normalized match (e.g., imagertuning_V5 vs imagertuning5)
+            norm_pkg = re.sub(r"[_.\-vV]", "", pkg).lower()
+            matched_perms = []
+            target_xml = os.path.join(perm_dir, f"privapp-permissions-{pkg}.xml")
+            for cand_pkg, (cand_xml, cand_perms) in declared_pkgs.items():
+                if re.sub(r"[_.\-vV]", "", cand_pkg).lower() == norm_pkg:
+                    matched_perms = cand_perms
+                    target_xml = cand_xml
+                    break
+            if not matched_perms:
+                matched_perms = [u for u in uses_perms if "IMAGER" in u or u in (
+                    "android.permission.STOP_APP_SWITCHES",
+                    "android.permission.WRITE_SECURE_SETTINGS",
+                    "android.permission.START_ACTIVITIES_FROM_BACKGROUND",
+                    "android.permission.START_FOREGROUND_SERVICES_FROM_BACKGROUND",
+                    "android.permission.INTERACT_ACROSS_USERS",
+                )]
+            if matched_perms:
+                if os.path.isfile(target_xml):
+                    tree = ET.parse(target_xml)
+                    r = tree.getroot()
+                else:
+                    r = ET.Element("permissions")
+                    tree = ET.ElementTree(r)
+                pp = ET.SubElement(r, "privapp-permissions", {"package": pkg})
+                for mp in matched_perms:
+                    ET.SubElement(pp, "permission", {"name": mp})
+                ET.indent(tree, space="    ")
+                tree.write(target_xml, encoding="utf-8", xml_declaration=True)
+                declared_pkgs[pkg] = (target_xml, matched_perms)
+
+# 2. Verify every library listed in staged system_ext/etc/public.libraries-*.txt exists
+#    so Android libnativeloader never aborts Zygote at boot
+se_etc = os.path.join(staging_dir, "system", "system_ext", "etc")
+se_lib64 = os.path.join(staging_dir, "system", "system_ext", "lib64")
+src_se_lib64 = os.path.join(src_root, "system_ext", "lib64")
+if os.path.isdir(se_etc):
+    for fn in sorted(os.listdir(se_etc)):
+        if not (fn.startswith("public.libraries-") and fn.endswith(".txt")):
+            continue
+        p = os.path.join(se_etc, fn)
+        valid = True
+        with open(p, "r", encoding="utf-8", errors="ignore") as fh:
+            for line in fh:
+                libname = line.strip().split()[0] if line.strip() and not line.strip().startswith("#") else ""
+                if not libname:
+                    continue
+                staged_so = os.path.join(se_lib64, libname)
+                if not os.path.isfile(staged_so):
+                    src_so = os.path.join(src_se_lib64, libname)
+                    if os.path.isfile(src_so):
+                        os.makedirs(se_lib64, exist_ok=True)
+                        shutil.copy2(src_so, staged_so)
+                    else:
+                        valid = False
+        if not valid:
+            os.remove(p)
+PY
+}
+
 harvest_blobs() {
   local src_root="$1"
   local staging_dir="$2"
@@ -888,21 +1092,26 @@ harvest_blobs() {
     cam_parent_dir="$(dirname "$CAMERA_MAIN_APK")"
     local cam_folder_name="${cam_parent_dir##*/}"
     cp -rf "$cam_parent_dir" "${staging_dir}/system/product/priv-app/"
+    strip_redundant_oat_if_dex_present "${staging_dir}/system/product/priv-app/${cam_folder_name}"
   fi
 
   # Companion AI Scene Engine
   local ai_src_dir
   ai_src_dir=$(find "${src_root}/product" -type d -name "MotCamera*AI*" 2>/dev/null | head -n1 || true)
   if [ -n "$ai_src_dir" ]; then
+    local ai_folder_name="${ai_src_dir##*/}"
     cp -rf "$ai_src_dir" "${staging_dir}/system/product/app/"
-    log_ok "Harvested AI Scene Engine: ${ai_src_dir##*/}"
+    strip_redundant_oat_if_dex_present "${staging_dir}/system/product/app/${ai_folder_name}"
+    log_ok "Harvested AI Scene Engine: ${ai_folder_name}"
   fi
 
-  # Permissions and sysconfigs
+  # Camera-only permissions, sysconfigs, init, and desktop app config
   cp -f "${src_root}/product/etc/permissions/"*com.motorola.camera* "${staging_dir}/system/product/etc/permissions/" 2>/dev/null || true
   cp -f "${src_root}/product/etc/sysconfig/"*com.motorola.camera* "${staging_dir}/system/product/etc/sysconfig/" 2>/dev/null || true
   cp -f "${src_root}/product/etc/init/"*motcamera* "${staging_dir}/system/product/etc/init/" 2>/dev/null || true
-  [ -d "${src_root}/product/etc/MotoDesktopAppConfig" ] && cp -rf "${src_root}/product/etc/MotoDesktopAppConfig/"* "${staging_dir}/system/product/etc/MotoDesktopAppConfig/" 2>/dev/null || true
+  if [ -d "${src_root}/product/etc/MotoDesktopAppConfig" ]; then
+    cp -f "${src_root}/product/etc/MotoDesktopAppConfig/"*camera* "${staging_dir}/system/product/etc/MotoDesktopAppConfig/" 2>/dev/null || true
+  fi
 
   # Shutter/focus sounds if present
   if [ -d "${src_root}/product/media/audio/ui" ]; then
@@ -911,7 +1120,7 @@ harvest_blobs() {
   fi
 
   # ----------------------------------------------------------------------------
-  # 2. System_ext Partition Components
+  # 2. System_ext Partition Components (Strictly Camera / Imager / Desktop Only)
   # ----------------------------------------------------------------------------
   log_info "  - Harvesting System_ext ImagerTuning, Desktop, frameworks, and libs..."
   mkdir -p "${staging_dir}/system/system_ext/priv-app"
@@ -923,23 +1132,46 @@ harvest_blobs() {
 
   # Dynamic ImagerTuning app directory
   while IFS= read -r -d $'\0' d; do
-    [ -n "$d" ] && cp -rf "$d" "${staging_dir}/system/system_ext/priv-app/"
+    if [ -n "$d" ]; then
+      cp -rf "$d" "${staging_dir}/system/system_ext/priv-app/"
+      strip_redundant_oat_if_dex_present "${staging_dir}/system/system_ext/priv-app/${d##*/}"
+    fi
   done < <(find "${src_root}/system_ext/priv-app" -maxdepth 1 -type d -name "ImagerTuning*" -print0 2>/dev/null)
 
   # MotCameraDesktop app directory
   if [ -d "${src_root}/system_ext/priv-app/MotCameraDesktop" ]; then
     cp -rf "${src_root}/system_ext/priv-app/MotCameraDesktop" "${staging_dir}/system/system_ext/priv-app/"
+    strip_redundant_oat_if_dex_present "${staging_dir}/system/system_ext/priv-app/MotCameraDesktop"
   fi
 
-  # Frameworks and permissions
-  cp -f "${src_root}/system_ext/framework/"*com.motorola.* "${staging_dir}/system/system_ext/framework/" 2>/dev/null || true
-  cp -f "${src_root}/system_ext/etc/permissions/"*motorola* "${staging_dir}/system/system_ext/etc/permissions/" 2>/dev/null || true
-  cp -f "${src_root}/system_ext/etc/permissions/"*imager* "${staging_dir}/system/system_ext/etc/permissions/" 2>/dev/null || true
-  cp -f "${src_root}/system_ext/etc/permissions/"*camera* "${staging_dir}/system/system_ext/etc/permissions/" 2>/dev/null || true
-  cp -f "${src_root}/system_ext/etc/public.libraries-"* "${staging_dir}/system/system_ext/etc/" 2>/dev/null || true
+  # Camera/Imager/Desktop frameworks ONLY (never copy IMS/telephony jars like cmadaptor)
+  for fw_pat in "*camera*" "*imager*" "*imgTuner*" "*imgtuner*"; do
+    while IFS= read -r -d $'\0' fw_file; do
+      [ -n "$fw_file" ] && cp -f "$fw_file" "${staging_dir}/system/system_ext/framework/"
+    done < <(find "${src_root}/system_ext/framework" -maxdepth 1 -type f -name "$fw_pat" -print0 2>/dev/null)
+  done
+
+  # Camera/Imager/Desktop permissions ONLY (never copy unrelated stock privapp-permissions)
+  for perm_pat in "*camera*" "*imager*" "*imgTuner*" "*imgtuner*"; do
+    while IFS= read -r -d $'\0' perm_file; do
+      [ -n "$perm_file" ] && cp -f "$perm_file" "${staging_dir}/system/system_ext/etc/permissions/"
+    done < <(find "${src_root}/system_ext/etc/permissions" -maxdepth 1 -type f -name "$perm_pat" -print0 2>/dev/null)
+  done
+
+  # Camera/Imager public.libraries ONLY (never copy public.libraries-qti.txt!)
+  for pub_pat in "public.libraries-*camera*" "public.libraries-*imager*" "public.libraries-*imagetuner*" "public.libraries-*imgTuner*" "public.libraries-*imgtuner*"; do
+    while IFS= read -r -d $'\0' pub_file; do
+      [ -n "$pub_file" ] && cp -f "$pub_file" "${staging_dir}/system/system_ext/etc/"
+    done < <(find "${src_root}/system_ext/etc" -maxdepth 1 -type f -name "$pub_pat" -print0 2>/dev/null)
+  done
+
+  # Enable-disable criteria & sysconfigs strictly for camera/imager/motcameradesktop
   cp -f "${src_root}/system_ext/etc/enable-disable-packages/"*camera* "${staging_dir}/system/system_ext/etc/enable-disable-packages/" 2>/dev/null || true
-  cp -f "${src_root}/system_ext/etc/enable-disable-packages/"*desktop* "${staging_dir}/system/system_ext/etc/enable-disable-packages/" 2>/dev/null || true
-  cp -f "${src_root}/system_ext/etc/sysconfig/"* "${staging_dir}/system/system_ext/etc/sysconfig/" 2>/dev/null || true
+  for sc_pat in "*camera*" "*imager*" "*imgTuner*" "*imgtuner*"; do
+    while IFS= read -r -d $'\0' sc_file; do
+      [ -n "$sc_file" ] && cp -f "$sc_file" "${staging_dir}/system/system_ext/etc/sysconfig/"
+    done < <(find "${src_root}/system_ext/etc/sysconfig" -maxdepth 1 -type f -name "$sc_pat" -print0 2>/dev/null)
+  done
 
   # System_ext native libraries
   for lib_arch in lib64 lib; do
@@ -961,14 +1193,13 @@ harvest_blobs() {
   log_info "  - Harvesting System framework signature libraries..."
   mkdir -p "${staging_dir}/system/framework"
   mkdir -p "${staging_dir}/system/etc/permissions"
-  mkdir -p "${staging_dir}/system/lib64"
 
-  cp -f "${sys_path}/framework/com.motorola.motosignature.jar" "${staging_dir}/system/framework/" 2>/dev/null || true
-  cp -f "${sys_path}/framework/moto-core_services.jar" "${staging_dir}/system/framework/" 2>/dev/null || true
-  cp -f "${sys_path}/framework/moto-settings.jar" "${staging_dir}/system/framework/" 2>/dev/null || true
-  cp -f "${sys_path}/etc/permissions/com.motorola.motosignature.xml" "${staging_dir}/system/etc/permissions/" 2>/dev/null || true
-  cp -f "${sys_path}/etc/permissions/moto-core_services.xml" "${staging_dir}/system/etc/permissions/" 2>/dev/null || true
-  cp -f "${sys_path}/etc/permissions/moto-settings.xml" "${staging_dir}/system/etc/permissions/" 2>/dev/null || true
+  for base_fw in "com.motorola.motosignature" "moto-core_services" "moto-settings"; do
+    if [ -f "${sys_path}/framework/${base_fw}.jar" ]; then
+      cp -f "${sys_path}/framework/${base_fw}.jar" "${staging_dir}/system/framework/"
+      [ -f "${sys_path}/etc/permissions/${base_fw}.xml" ] && cp -f "${sys_path}/etc/permissions/${base_fw}.xml" "${staging_dir}/system/etc/permissions/"
+    fi
+  done
 
   for lib_arch in lib64 lib; do
     if [ -d "${sys_path}/${lib_arch}" ]; then
@@ -979,61 +1210,16 @@ harvest_blobs() {
     fi
   done
 
-  # ----------------------------------------------------------------------------
-  # 4. Vendor Camera HAL & VINTF Manifest
-  # ----------------------------------------------------------------------------
-  log_info "  - Harvesting Vendor HAL services and VINTF manifests..."
-  mkdir -p "${staging_dir}/system/vendor/bin/hw"
-  mkdir -p "${staging_dir}/system/vendor/etc/init"
-  mkdir -p "${staging_dir}/system/vendor/etc/vintf/manifest"
-  mkdir -p "${staging_dir}/system/vendor/lib64/hw"
+  # Note: /vendor is intentionally NOT harvested or modified. LineageOS does not
+  # reserve writable headroom on /vendor (read-only EROFS on sm7435/genevn, tight
+  # EXT4 on sm6375/milanf), already ships motorola.hardware.camera.desktop@2.0-service
+  # with proper SELinux policy, and modifying /vendor breaks VINTF SELinux labels.
 
-  # Hardware Daemons
-  while IFS= read -r -d $'\0' bin_file; do
-    [ -n "$bin_file" ] && cp -f "$bin_file" "${staging_dir}/system/vendor/bin/hw/"
-  done < <(find "${src_root}/vendor/bin/hw" -maxdepth 1 -type f -name "motorola.hardware.camera.*" -print0 2>/dev/null)
+  # Validate privapp-permissions package names & public.libraries-*.txt integrity
+  validate_and_fix_staged_configs "$src_root" "$staging_dir"
 
-  # Init rc files
-  while IFS= read -r -d $'\0' rc_file; do
-    [ -n "$rc_file" ] && cp -f "$rc_file" "${staging_dir}/system/vendor/etc/init/"
-  done < <(find "${src_root}/vendor/etc/init" -maxdepth 1 -type f -name "motorola.hardware.camera.*" -print0 2>/dev/null)
-
-  # Vendor HAL libraries
-  for lib_arch in lib64 lib; do
-    if [ -d "${src_root}/vendor/${lib_arch}" ]; then
-      mkdir -p "${staging_dir}/system/vendor/${lib_arch}/hw"
-      while IFS= read -r -d $'\0' lib_file; do
-        [ -n "$lib_file" ] && cp -f "$lib_file" "${staging_dir}/system/vendor/${lib_arch}/hw/"
-      done < <(find "${src_root}/vendor/${lib_arch}/hw" -maxdepth 1 -type f -name "motorola.hardware.camera.*" -print0 2>/dev/null)
-
-      while IFS= read -r -d $'\0' lib_file; do
-        [ -n "$lib_file" ] && cp -f "$lib_file" "${staging_dir}/system/vendor/${lib_arch}/"
-      done < <(find "${src_root}/vendor/${lib_arch}" -maxdepth 1 -type f \( -name "motorola.hardware.camera.*" -o -name "libmot_chi_desktop_helper*" \) -print0 2>/dev/null)
-    fi
-  done
-
-  # VINTF Manifest
-  local vintf_file="${staging_dir}/system/vendor/etc/vintf/manifest/manifest_imgtuner.xml"
-  if [ -f "${src_root}/vendor/etc/vintf/manifest/manifest_imgtuner.xml" ]; then
-    cp -f "${src_root}/vendor/etc/vintf/manifest/manifest_imgtuner.xml" "$vintf_file"
-  else
-    cat <<'EOF' > "$vintf_file"
-<manifest version="1.0" type="device">
-    <hal format="hidl">
-        <name>motorola.hardware.camera.imgtuner</name>
-        <transport>hwbinder</transport>
-        <version>1.0</version>
-        <version>2.0</version>
-        <interface>
-            <name>IImageTuning</name>
-            <instance>default</instance>
-        </interface>
-        <fqname>@1.0::IImageTuning/default</fqname>
-        <fqname>@2.0::IImageTuning/default</fqname>
-    </hal>
-</manifest>
-EOF
-  fi
+  # Remove any empty staging directories
+  find "${staging_dir}/system" -depth -type d -empty -delete 2>/dev/null || true
 
   log_ok "All ${CAMERA_GEN_NAME} proprietary blobs harvested successfully."
 }
