@@ -59,7 +59,7 @@ Devices listed here have active LineageOS maintainers and up-to-date trees. Sinc
 | [**moto g power 2021**](reports/borneo.md) | `borneo` | 24.0 | Moto Camera 3 | ❔ Untested |
 | [**moto g pure**](reports/ellis.md) | `ellis` | 24.0 | Moto Camera 3 | ❔ Untested |
 | [**moto g stylus 5G**](reports/denver.md) | `denver` | 24.0 | Moto Camera 3 | ❔ Untested |
-| [**moto g stylus 5G (2022)**](reports/milanf.md) | `milanf` | 24.0 | Moto Camera 4 | ❔ Untested |
+| [**moto g stylus 5G (2022)**](reports/milanf.md) | `milanf` | 24.0 | Moto Camera 4 | ⛔ Won't Boot |
 | [**moto g stylus 5G (2023)**](reports/genevn.md) | `genevn` | 24.0 | Moto Camera 4 | 🟢 Works Perfectly |
 | [**moto g05**](reports/lamu.md) | `lamu` | 24.0 | Moto Camera 5 | ❔ Untested |
 | [**moto g10**](reports/capri.md) | `capri` | 24.0 | Moto Camera 3 | ❔ Untested |

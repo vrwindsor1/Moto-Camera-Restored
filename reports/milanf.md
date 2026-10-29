@@ -12,8 +12,8 @@
 - **Codename:** `milanf`
 - **Model Number(s):** `XT2215-1`, `XT2215-3`, `XT2215-4`
 - **Stock Camera Era:** Moto Camera 4
-- **Current Overall Status:** ❔ **Untested**
-- **Total Community Reports:** 0
+- **Current Overall Status:** ⛔ **Won't Boot**
+- **Total Community Reports:** 1
 
 ---
 
@@ -21,7 +21,7 @@
 
 | Report | Custom ROM | Stock Firmware | Outcome | Tested Features / Notes |
 | :--- | :--- | :--- | :---: | :--- |
-| *No reports yet* | — | — | ❔ Untested | Waiting for community test report |
+| [#3](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/3) by [@steveeaves-ai](https://github.com/steveeaves-ai) | Chara 2.0 Android 17 | — | ⛔ Won't Boot | — |
 
 ---
 
