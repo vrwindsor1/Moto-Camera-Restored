@@ -1,0 +1,619 @@
+#!/sbin/sh
+# ==============================================================================
+# Motorola Camera 4 Suite Recovery Installer — DIAGNOSTIC DEBUG EDITION
+# TEMPLATE_SCHEMA_VERSION=2_DEBUG
+# Captures comprehensive partition, SELinux, VINTF, ROM, free-space, and
+# pstore crash diagnostics to assist remote troubleshooting.
+# ==============================================================================
+
+OUTFD="/proc/self/fd/$2"
+ZIP="$3"
+TMP=/tmp
+RAW_LOG="${TMP}/motocamera_debug.log"
+HEALTH_WARNINGS=0
+
+rm -f "$RAW_LOG"
+touch "$RAW_LOG"
+
+dbg() {
+  echo "$*" >> "$RAW_LOG"
+}
+
+dbg_section() {
+  echo "" >> "$RAW_LOG"
+  echo "================================================================================" >> "$RAW_LOG"
+  echo "  $1" >> "$RAW_LOG"
+  echo "================================================================================" >> "$RAW_LOG"
+}
+
+dbg_cmd() {
+  echo "--- CMD: $* ---" >> "$RAW_LOG"
+  "$@" >> "$RAW_LOG" 2>&1 || echo "[exit=$?]" >> "$RAW_LOG"
+}
+
+set_con() {
+  chcon -h u:object_r:"$1":s0 "$2" 2>>"$RAW_LOG" || true
+  chcon u:object_r:"$1":s0 "$2" 2>>"$RAW_LOG" || true
+}
+
+set_perm() {
+  chmod $1 "$2" 2>>"$RAW_LOG" || true
+}
+
+set_owner() {
+  chown $1:$2 "$3" 2>>"$RAW_LOG" || true
+}
+
+ui_print() {
+  echo "ui_print $1" > "$OUTFD"
+  echo "ui_print" > "$OUTFD"
+  echo "[UI] $1" >> "$RAW_LOG"
+}
+
+flush_debug_log() {
+  local status_label="$1"
+  dbg_section "FINAL INSTALLER STATUS: ${status_label} (Health Warnings: ${HEALTH_WARNINGS})"
+  dbg "Completed at: $(date -u 2>/dev/null || echo unknown)"
+
+  SAVED_LOCATIONS="/tmp/motocamera_debug.log"
+
+  # 1. Persist inside /system_ext/etc if mounted rw (world-readable 0644 system_file
+  #    so 'adb pull /system_ext/etc/motocamera_install_debug.log' works after boot
+  #    without root, AND survives bootloops for inspection in recovery!)
+  if [ -n "$SYSTEM_EXT_OUT" ] && [ -d "$SYSTEM_EXT_OUT/etc" ]; then
+    local persist_log="${SYSTEM_EXT_OUT}/etc/motocamera_install_debug.log"
+    if cp -f "$RAW_LOG" "$persist_log" 2>/dev/null; then
+      chown 0:0 "$persist_log" 2>/dev/null || true
+      chmod 0644 "$persist_log" 2>/dev/null || true
+      chcon -h u:object_r:system_file:s0 "$persist_log" 2>/dev/null || true
+      chcon u:object_r:system_file:s0 "$persist_log" 2>/dev/null || true
+      SAVED_LOCATIONS="${SAVED_LOCATIONS}, /system_ext/etc/motocamera_install_debug.log"
+    fi
+  fi
+
+  # 2. Save directly next to $ZIP when flashed from SD card / USB-OTG / local storage
+  #    (Note: /sideload/package.zip during 'adb sideload' is a virtual read-only FUSE stream)
+  if [ -n "$ZIP" ]; then
+    local zip_dir
+    zip_dir=$(dirname "$ZIP")
+    if [ "$zip_dir" != "/sideload" ] && [ -d "$zip_dir" ] && [ -w "$zip_dir" ]; then
+      local adj_log="${ZIP%.zip}.debug.log"
+      [ "$adj_log" = "$ZIP" ] && adj_log="${ZIP}.debug.log"
+      if cp -f "$RAW_LOG" "$adj_log" 2>/dev/null; then
+        SAVED_LOCATIONS="${SAVED_LOCATIONS}, ${adj_log}"
+      fi
+    fi
+  fi
+
+  # 3. Try unencrypted /sdcard/Download or /data/media/0/Download if available
+  local dl_name="MotoCameraRestored_${MOTO_DEV:-device}_install.debug.log"
+  for sd_dl in "/sdcard/Download" "/data/media/0/Download"; do
+    if [ -d "$sd_dl" ] && [ -w "$sd_dl" ]; then
+      if cp -f "$RAW_LOG" "${sd_dl}/${dl_name}" 2>/dev/null; then
+        SAVED_LOCATIONS="${SAVED_LOCATIONS}, ${sd_dl}/${dl_name}"
+        break
+      fi
+    fi
+  done
+
+  # 4. Also append to /cache/recovery/motocamera_debug.log if /cache exists
+  if [ -d "/cache" ] && [ -w "/cache" ]; then
+    mkdir -p /cache/recovery 2>/dev/null || true
+    if cp -f "$RAW_LOG" /cache/recovery/motocamera_debug.log 2>/dev/null; then
+      SAVED_LOCATIONS="${SAVED_LOCATIONS}, /cache/recovery/motocamera_debug.log"
+    fi
+  fi
+}
+
+cleanup() {
+  ui_print "Cleaning up temporary files..."
+  rm -rf "$TMP/system"
+  rm -rf "$TMP/bin"
+  rm -f "$TMP/toybox"
+  rm -f "$TMP/motocamera.prop"
+  rm -f "$TMP/build.prop"
+
+  ui_print "Unmounting partitions..."
+  umount -l /mnt/vendor_ro_audit 2>/dev/null || true
+  umount -l /mnt/product 2>/dev/null || true
+  umount -l /product 2>/dev/null || true
+  umount -l /mnt/system_ext 2>/dev/null || true
+  umount -l /system_ext 2>/dev/null || true
+  umount -l /mnt/system 2>/dev/null || true
+  umount -l /system 2>/dev/null || true
+}
+
+error() {
+  ui_print "! ERROR: $1"
+  dbg "[FATAL ERROR] $1"
+  dbg_section "DMESG TAIL ON ERROR"
+  dmesg 2>/dev/null | tail -n 100 >> "$RAW_LOG" 2>&1 || true
+  flush_debug_log "FAILED: $1"
+  cleanup
+  ui_print "Debug log saved to: $SAVED_LOCATIONS"
+  ui_print "Pull via PC: adb pull /tmp/motocamera_debug.log"
+  exit 1
+}
+
+find_block() {
+  local name="$1"
+  local dev=""
+  for prefix in "/dev/block/mapper" "/dev/block/bootdevice/by-name" "/dev/block/by-name"; do
+    if [ -n "$SLOT_SUFFIX" ] && [ -b "${prefix}/${name}${SLOT_SUFFIX}" ]; then
+      dev="${prefix}/${name}${SLOT_SUFFIX}"
+      break
+    elif [ -b "${prefix}/${name}" ]; then
+      dev="${prefix}/${name}"
+      break
+    fi
+  done
+  echo "$dev"
+}
+
+resolve_dest_path() {
+  local rel="$1"
+  case "$rel" in
+    product/*)
+      echo "${PRODUCT_OUT}/${rel#product/}"
+      ;;
+    product)
+      echo "${PRODUCT_OUT}"
+      ;;
+    system_ext/*)
+      echo "${SYSTEM_EXT_OUT}/${rel#system_ext/}"
+      ;;
+    system_ext)
+      echo "${SYSTEM_EXT_OUT}"
+      ;;
+    *)
+      echo "${SYSTEM_OUT}/${rel}"
+      ;;
+  esac
+}
+
+# ------------------------------------------------------------------------------
+# 0. Initialize Debug Log & Capture Recovery Environment
+# ------------------------------------------------------------------------------
+dbg_section "MOTOCAMERA RESTORED — RECOVERY DEBUG LOG"
+dbg "Started at: $(date -u 2>/dev/null || echo unknown)"
+dbg "ZIP Arg (\$3): $ZIP"
+dbg "OUTFD Arg (\$2): $2"
+dbg_cmd uname -a
+dbg_cmd id
+
+# ------------------------------------------------------------------------------
+# 1. Unpack Installer Archive & Parse Device Metadata
+# ------------------------------------------------------------------------------
+ui_print "Extracting debug installer archive..."
+cd "$TMP"
+rm -rf "$TMP/system" "$TMP/motocamera.prop"
+unzip -o "$ZIP" >/dev/null 2>>"$RAW_LOG"
+rm -rf META-INF
+
+MOTO_DEV=""
+MOTO_MODEL=""
+MOTO_BUILD=""
+MOTO_ANDROID=""
+MOTO_VERSION=""
+if [ -f "motocamera.prop" ]; then
+  MOTO_DEV=$(grep "^ro.motocamera.device=" motocamera.prop 2>/dev/null | cut -d= -f2- | tr -d '\r')
+  MOTO_MODEL=$(grep "^ro.motocamera.model=" motocamera.prop 2>/dev/null | cut -d= -f2- | tr -d '\r')
+  MOTO_BUILD=$(grep "^ro.motocamera.build_id=" motocamera.prop 2>/dev/null | cut -d= -f2- | tr -d '\r')
+  MOTO_ANDROID=$(grep "^ro.motocamera.android=" motocamera.prop 2>/dev/null | cut -d= -f2- | tr -d '\r')
+  MOTO_VERSION=$(grep "^ro.motocamera.version=" motocamera.prop 2>/dev/null | cut -d= -f2- | tr -d '\r')
+  dbg_section "PACKAGED motocamera.prop"
+  cat motocamera.prop >> "$RAW_LOG" 2>&1 || true
+fi
+
+if [ -f "build.prop" ]; then
+  dbg_section "PACKAGED INSTALLER build.prop"
+  cat build.prop >> "$RAW_LOG" 2>&1 || true
+fi
+
+ui_print "=================================================="
+ui_print "  Moto Camera 4 Recovery Installer [DEBUG MODE]   "
+if [ -n "$MOTO_MODEL" ]; then
+  ui_print "  Target: $MOTO_MODEL (${MOTO_DEV:-generic})"
+else
+  ui_print "  Target: Universal Motorola Device               "
+fi
+if [ -n "$MOTO_VERSION" ]; then
+  ui_print "  Camera Version: $MOTO_VERSION"
+fi
+if [ -n "$MOTO_BUILD" ]; then
+  ui_print "  Firmware Base: $MOTO_BUILD (Android ${MOTO_ANDROID:-14})"
+fi
+ui_print "=================================================="
+
+# ------------------------------------------------------------------------------
+# 2. Setup Execution Environment (Toybox)
+# ------------------------------------------------------------------------------
+ui_print "Setting up execution environment..."
+TOYBOX="${TMP}/toybox"
+chmod +x "$TOYBOX"
+
+TOYS_PATH="${TMP}/bin"
+rm -rf "$TOYS_PATH"
+$TOYBOX install -d "$TOYS_PATH" 2>/dev/null || mkdir -p "$TOYS_PATH"
+for toy in $($TOYBOX 2>/dev/null); do
+  $TOYBOX ln -sf "$TOYBOX" "${TOYS_PATH}/${toy}" 2>/dev/null || true
+done
+PATH="${TOYS_PATH}:${PATH}"
+
+dbg_cmd getenforce
+dbg_section "PACKAGE PAYLOAD SUMMARY"
+du -sh "$TMP/system" "$TMP/system/"* >> "$RAW_LOG" 2>&1 || true
+
+# ------------------------------------------------------------------------------
+# 2b. Capture Previous-Boot Crash / Bootloop Forensics (/sys/fs/pstore)
+# ------------------------------------------------------------------------------
+dbg_section "PREVIOUS BOOT CRASH / PSTORE RAMOOPS FORENSICS"
+if [ -d "/sys/fs/pstore" ] && [ -n "$(ls -A /sys/fs/pstore 2>/dev/null)" ]; then
+  ls -la /sys/fs/pstore >> "$RAW_LOG" 2>&1 || true
+  for pf in /sys/fs/pstore/pmsg-ramoops* /sys/fs/pstore/console-ramoops* /sys/fs/pstore/dmesg-ramoops*; do
+    if [ -f "$pf" ]; then
+      dbg "--- Filtered critical events from $pf ---"
+      grep -E -i "FATAL|AndroidRuntime|IllegalStateException|PermissionManager|PackageManager|SELinux|avc:|nativeloader|vintf|servicemanager|hwservicemanager|init:.*Service|init:.*Reboot|dm-verity|EXT4-fs|camera|motorola|ImagerTuning|imgtuner" "$pf" 2>/dev/null | tail -n 200 >> "$RAW_LOG" || true
+      dbg "--- Last 120 raw lines of $pf ---"
+      tail -n 120 "$pf" >> "$RAW_LOG" 2>&1 || true
+    fi
+  done
+else
+  dbg "No /sys/fs/pstore ramoops files present."
+fi
+
+# ------------------------------------------------------------------------------
+# 3. Detect Slot & Partitions
+# ------------------------------------------------------------------------------
+ui_print "Detecting device slot and target partitions..."
+dbg_section "RECOVERY SYSTEM PROPERTIES & BLOCK DEVICES"
+for prop in ro.product.device ro.product.name ro.product.model ro.boot.hardware.sku \
+            ro.boot.slot_suffix ro.boot.slot ro.boot.vbmeta.device_state \
+            ro.boot.veritymode ro.crypto.state ro.build.display.id ro.build.fingerprint; do
+  dbg "  $prop = $(getprop "$prop" 2>/dev/null)"
+done
+
+CURRENTSLOT=`getprop ro.boot.slot_suffix`
+[ -z "$CURRENTSLOT" ] && CURRENTSLOT=`getprop ro.boot.slot`
+if [ "$CURRENTSLOT" = "_a" ] || [ "$CURRENTSLOT" = "a" ]; then
+  SLOT_SUFFIX="_a"
+elif [ "$CURRENTSLOT" = "_b" ] || [ "$CURRENTSLOT" = "b" ]; then
+  SLOT_SUFFIX="_b"
+else
+  SLOT_SUFFIX=""
+fi
+ui_print "  - Active slot: ${SLOT_SUFFIX:-none}"
+
+dbg "--- /dev/block/mapper listing ---"
+ls -la /dev/block/mapper >> "$RAW_LOG" 2>&1 || true
+
+# Unmount any existing mounts
+umount /product 2>/dev/null || umount /mnt/product 2>/dev/null || true
+umount /system_ext 2>/dev/null || umount /mnt/system_ext 2>/dev/null || true
+umount /system 2>/dev/null || umount /mnt/system 2>/dev/null || true
+
+SYSTEM_BLOCK=$(find_block "system")
+PRODUCT_BLOCK=$(find_block "product")
+SYSTEM_EXT_BLOCK=$(find_block "system_ext")
+VENDOR_BLOCK=$(find_block "vendor")
+
+dbg "Resolved SYSTEM_BLOCK     = ${SYSTEM_BLOCK:-NONE}"
+dbg "Resolved PRODUCT_BLOCK    = ${PRODUCT_BLOCK:-NONE}"
+dbg "Resolved SYSTEM_EXT_BLOCK = ${SYSTEM_EXT_BLOCK:-NONE}"
+dbg "Resolved VENDOR_BLOCK     = ${VENDOR_BLOCK:-NONE} (read-only health audit only)"
+
+ui_print "Disabling block device write protection..."
+[ -n "$SYSTEM_BLOCK" ] && blockdev --setrw "$SYSTEM_BLOCK" 2>>"$RAW_LOG" || true
+[ -n "$PRODUCT_BLOCK" ] && blockdev --setrw "$PRODUCT_BLOCK" 2>>"$RAW_LOG" || true
+[ -n "$SYSTEM_EXT_BLOCK" ] && blockdev --setrw "$SYSTEM_EXT_BLOCK" 2>>"$RAW_LOG" || true
+
+# ------------------------------------------------------------------------------
+# 4. Mount Partitions & Inspect Installed Custom ROM
+# ------------------------------------------------------------------------------
+ui_print "Mounting target partitions..."
+dbg_section "MOUNTING PARTITIONS & PRE-INSTALL SPACE"
+
+SYSTEM_MNT=/mnt/system
+mkdir -p "$SYSTEM_MNT" 2>/dev/null || true
+if mount -o rw "$SYSTEM_BLOCK" "$SYSTEM_MNT" 2>>"$RAW_LOG" || mount "$SYSTEM_BLOCK" "$SYSTEM_MNT" 2>>"$RAW_LOG"; then
+  mount -o remount,rw "$SYSTEM_MNT" 2>>"$RAW_LOG" || true
+  ui_print "  - System partition mounted rw (/mnt/system)"
+else
+  error "Could not mount system partition ($SYSTEM_BLOCK)! Aborting."
+fi
+
+if [ -d "${SYSTEM_MNT}/system" ]; then
+  SYSTEM_OUT="${SYSTEM_MNT}/system"
+else
+  SYSTEM_OUT="${SYSTEM_MNT}"
+fi
+
+PRODUCT_OUT=""
+if [ -n "$PRODUCT_BLOCK" ]; then
+  mkdir -p /mnt/product 2>/dev/null || true
+  if mount -o rw "$PRODUCT_BLOCK" /mnt/product 2>>"$RAW_LOG" || mount "$PRODUCT_BLOCK" /mnt/product 2>>"$RAW_LOG"; then
+    mount -o remount,rw /mnt/product 2>>"$RAW_LOG" || true
+    ui_print "  - Product partition mounted rw (/mnt/product)"
+    PRODUCT_OUT=/mnt/product
+  fi
+fi
+if [ -z "$PRODUCT_OUT" ]; then
+  if [ -d "${SYSTEM_OUT}/product" ] && [ ! -L "${SYSTEM_OUT}/product" ]; then
+    PRODUCT_OUT="${SYSTEM_OUT}/product"
+  elif [ -d "${SYSTEM_MNT}/product" ] && [ ! -L "${SYSTEM_MNT}/product" ]; then
+    PRODUCT_OUT="${SYSTEM_MNT}/product"
+  else
+    error "Could not mount product partition ($PRODUCT_BLOCK)! Aborting."
+  fi
+fi
+
+SYSTEM_EXT_OUT=""
+if [ -n "$SYSTEM_EXT_BLOCK" ]; then
+  mkdir -p /mnt/system_ext 2>/dev/null || true
+  if mount -o rw "$SYSTEM_EXT_BLOCK" /mnt/system_ext 2>>"$RAW_LOG" || mount "$SYSTEM_EXT_BLOCK" /mnt/system_ext 2>>"$RAW_LOG"; then
+    mount -o remount,rw /mnt/system_ext 2>>"$RAW_LOG" || true
+    ui_print "  - System_ext partition mounted rw (/mnt/system_ext)"
+    SYSTEM_EXT_OUT=/mnt/system_ext
+  fi
+fi
+if [ -z "$SYSTEM_EXT_OUT" ]; then
+  if [ -d "${SYSTEM_OUT}/system_ext" ] && [ ! -L "${SYSTEM_OUT}/system_ext" ]; then
+    SYSTEM_EXT_OUT="${SYSTEM_OUT}/system_ext"
+  elif [ -d "${SYSTEM_MNT}/system_ext" ] && [ ! -L "${SYSTEM_MNT}/system_ext" ]; then
+    SYSTEM_EXT_OUT="${SYSTEM_MNT}/system_ext"
+  else
+    error "Could not mount system_ext partition ($SYSTEM_EXT_BLOCK)! Aborting."
+  fi
+fi
+
+dbg "--- Active /proc/mounts ---"
+grep -E "/mnt/|system|product|vendor" /proc/mounts >> "$RAW_LOG" 2>&1 || true
+dbg "--- Pre-Install Disk Space (df -Pk) ---"
+df -Pk "$SYSTEM_MNT" "$PRODUCT_OUT" "$SYSTEM_EXT_OUT" >> "$RAW_LOG" 2>&1 || true
+dbg "--- Pre-Install Free Inodes (df -Pi) ---"
+df -Pi "$SYSTEM_MNT" "$PRODUCT_OUT" "$SYSTEM_EXT_OUT" >> "$RAW_LOG" 2>&1 || true
+
+# Verify partitions are actually mounted read-write (not silently ro / erofs!)
+for mnt_chk in "$SYSTEM_OUT" "$PRODUCT_OUT" "$SYSTEM_EXT_OUT"; do
+  if touch "${mnt_chk}/.motocamera_rw_probe" 2>>"$RAW_LOG"; then
+    rm -f "${mnt_chk}/.motocamera_rw_probe" 2>/dev/null || true
+    dbg "[OK] Write probe succeeded on $mnt_chk"
+  else
+    error "Partition at '$mnt_chk' is READ-ONLY (EROFS or dm-verity locked)! Cannot write camera files."
+  fi
+done
+
+dbg_section "INSTALLED CUSTOM ROM BUILD PROPERTIES"
+for bp in "${SYSTEM_OUT}/build.prop" "${SYSTEM_EXT_OUT}/etc/build.prop" "${PRODUCT_OUT}/etc/build.prop"; do
+  if [ -f "$bp" ]; then
+    dbg "--- $bp ---"
+    grep -E "^(ro\.build\.display\.id|ro\.build\.version\.release|ro\.build\.version\.sdk|ro\.build\.fingerprint|ro\.build\.type|ro\.lineage\.|ro\.product\..*\.device|ro\.product\..*\.model|ro\.control_privapp_permissions)=" "$bp" >> "$RAW_LOG" 2>&1 || true
+  fi
+done
+
+# ------------------------------------------------------------------------------
+# 4b. Read-Only Pre-Flash Health Audit (/vendor VINTF & /system_ext Residue)
+# ------------------------------------------------------------------------------
+ui_print "Running SELinux & partition health audit..."
+dbg_section "PRE-FLASH HEALTH AUDIT (/vendor READ-ONLY & /system_ext RESIDUE)"
+
+if [ -n "$VENDOR_BLOCK" ]; then
+  mkdir -p /mnt/vendor_ro_audit 2>/dev/null || true
+  if mount -o ro "$VENDOR_BLOCK" /mnt/vendor_ro_audit 2>>"$RAW_LOG"; then
+    dbg "--- /vendor/etc/vintf/manifest SELinux labels ---"
+    ls -laZ /mnt/vendor_ro_audit/etc/vintf/manifest >> "$RAW_LOG" 2>&1 || true
+    if ls -laZ /mnt/vendor_ro_audit/etc/vintf/manifest/*.xml 2>/dev/null | grep -q ":vendor_file:"; then
+      HEALTH_WARNINGS=$((HEALTH_WARNINGS + 1))
+      dbg "[HEALTH ALERT] Corrupted SELinux label 'vendor_file' detected in /vendor/etc/vintf/manifest/ (expected 'vendor_configs_file')!"
+      dbg "               This comes from an older flash that modified /vendor. Dirty-flash your LineageOS/custom ROM zip to restore /vendor!"
+      ui_print "! WARNING: /vendor VINTF has old 'vendor_file' labels!"
+      ui_print "! Please dirty-flash your ROM zip first to restore /vendor."
+    fi
+    if [ -f "/mnt/vendor_ro_audit/etc/vintf/manifest/manifest_imgtuner.xml" ]; then
+      HEALTH_WARNINGS=$((HEALTH_WARNINGS + 1))
+      dbg "[HEALTH ALERT] Legacy /vendor/etc/vintf/manifest/manifest_imgtuner.xml is still present on /vendor!"
+      ui_print "! WARNING: Old manifest_imgtuner.xml found on /vendor!"
+    fi
+    dbg "--- /vendor/bin/hw/*camera* SELinux labels ---"
+    ls -laZ /mnt/vendor_ro_audit/bin/hw/*camera* >> "$RAW_LOG" 2>&1 || true
+    umount -l /mnt/vendor_ro_audit 2>/dev/null || true
+  else
+    dbg "Could not mount $VENDOR_BLOCK read-only for audit (non-fatal)."
+  fi
+fi
+
+# Check for broken public.libraries-*.txt on /system_ext before install
+if [ -d "$SYSTEM_EXT_OUT/etc" ]; then
+  for pubtxt in "$SYSTEM_EXT_OUT/etc/public.libraries-"*.txt; do
+    [ -f "$pubtxt" ] || continue
+    dbg "--- Checking existing $pubtxt ---"
+    while read -r libline || [ -n "$libline" ]; do
+      libname=$(echo "$libline" | awk '{print $1}' | tr -d '\r')
+      case "$libname" in ""|\#*) continue ;; esac
+      if [ ! -f "$SYSTEM_EXT_OUT/lib64/$libname" ]; then
+        HEALTH_WARNINGS=$((HEALTH_WARNINGS + 1))
+        dbg "[HEALTH ALERT] $pubtxt lists '$libname' which is MISSING from $SYSTEM_EXT_OUT/lib64/! Zygote libnativeloader may abort!"
+        ui_print "! WARNING: $(basename "$pubtxt") references missing $libname!"
+      fi
+    done < "$pubtxt"
+  done
+  if [ -f "$SYSTEM_EXT_OUT/framework/com.motorola.ims.cmadaptor.jar" ]; then
+    HEALTH_WARNINGS=$((HEALTH_WARNINGS + 1))
+    dbg "[HEALTH ALERT] Leftover com.motorola.ims.cmadaptor.jar detected in /system_ext/framework from an older flash!"
+  fi
+fi
+
+# ------------------------------------------------------------------------------
+# 5. Generate OTA addon.d Backup Survival Script
+# ------------------------------------------------------------------------------
+cd "$TMP/system"
+rm -rf vendor
+
+ui_print "Generating LineageOS addon.d OTA backup script..."
+cat addon.d/addond_head > addon.d/30-motocamera.sh
+find . ! -path "./addon.d*" -type f | sort | while read -r f; do
+  line=$(echo "$f" | sed 's|^\./||')
+  echo "$line" >> addon.d/30-motocamera.sh
+done
+cat addon.d/addond_tail >> addon.d/30-motocamera.sh
+rm -f addon.d/addond_head addon.d/addond_tail
+
+# ------------------------------------------------------------------------------
+# 6. Deploy Proprietary Files
+# ------------------------------------------------------------------------------
+ui_print "Installing Motorola Camera 4 Suite components..."
+dbg_section "DEPLOYING PROPRIETARY FILES"
+
+if [ -d "product" ] && [ -n "$PRODUCT_OUT" ]; then
+  ui_print "  - Installing Product apps and configurations..."
+  mkdir -p "$PRODUCT_OUT"
+  cp -rf product/* "$PRODUCT_OUT/" 2>>"$RAW_LOG" || error "Failed writing to product partition (check free space)!"
+  dbg "[OK] Copied product/* -> $PRODUCT_OUT/"
+fi
+
+if [ -d "system_ext" ] && [ -n "$SYSTEM_EXT_OUT" ]; then
+  ui_print "  - Installing System_ext apps, frameworks, and native libraries..."
+  mkdir -p "$SYSTEM_EXT_OUT"
+  cp -rf system_ext/* "$SYSTEM_EXT_OUT/" 2>>"$RAW_LOG" || error "Failed writing to system_ext partition (check free space)!"
+  dbg "[OK] Copied system_ext/* -> $SYSTEM_EXT_OUT/"
+fi
+
+ui_print "  - Installing System framework, signature jars, and OTA script..."
+mkdir -p "$SYSTEM_OUT/framework" "$SYSTEM_OUT/etc/permissions" "$SYSTEM_OUT/addon.d" 2>/dev/null || true
+[ -d "framework" ] && { cp -rf framework/* "$SYSTEM_OUT/framework/" 2>>"$RAW_LOG" || error "Failed writing to system/framework!"; }
+[ -d "etc/permissions" ] && { cp -rf etc/permissions/* "$SYSTEM_OUT/etc/permissions/" 2>>"$RAW_LOG" || error "Failed writing to system/etc/permissions!"; }
+if [ -d "lib64" ]; then
+  mkdir -p "$SYSTEM_OUT/lib64" 2>/dev/null || true
+  cp -rf lib64/* "$SYSTEM_OUT/lib64/" 2>>"$RAW_LOG" || error "Failed writing to system/lib64!"
+fi
+if [ -d "lib" ]; then
+  mkdir -p "$SYSTEM_OUT/lib" 2>/dev/null || true
+  cp -rf lib/* "$SYSTEM_OUT/lib/" 2>>"$RAW_LOG" || error "Failed writing to system/lib!"
+fi
+cp -rf addon.d/30-motocamera.sh "$SYSTEM_OUT/addon.d/30-motocamera.sh" 2>>"$RAW_LOG"
+dbg "[OK] Copied system framework, permissions, libs, and addon.d/30-motocamera.sh"
+
+# ------------------------------------------------------------------------------
+# 7. Configure Camera System Properties
+# ------------------------------------------------------------------------------
+dbg_section "CAMERA SYSTEM PROPERTIES CONFIGURATION"
+PROP_FILE=""
+if [ -n "$SYSTEM_EXT_OUT" ] && [ -f "${SYSTEM_EXT_OUT}/etc/build.prop" ]; then
+  PROP_FILE="${SYSTEM_EXT_OUT}/etc/build.prop"
+elif [ -f "${SYSTEM_OUT}/build.prop" ]; then
+  PROP_FILE="${SYSTEM_OUT}/build.prop"
+elif [ -n "$PRODUCT_OUT" ] && [ -f "${PRODUCT_OUT}/etc/build.prop" ]; then
+  PROP_FILE="${PRODUCT_OUT}/etc/build.prop"
+fi
+
+dbg "Selected target PROP_FILE = ${PROP_FILE:-NONE}"
+if [ -n "$PROP_FILE" ] && [ -f "$PROP_FILE" ]; then
+  ui_print "  - Configuring device camera system properties..."
+  if ! grep -q "# Motorola Camera 4 Suite Properties" "$PROP_FILE" 2>/dev/null; then
+    echo "" >> "$PROP_FILE"
+    echo "# Motorola Camera 4 Suite Properties" >> "$PROP_FILE"
+  fi
+
+  if [ -f "$TMP/motocamera.prop" ]; then
+    while IFS='=' read -r key val || [ -n "$key" ]; do
+      case "$key" in
+        \#*|"") continue ;;
+        ro.motocamera.*) continue ;;
+      esac
+      clean_key=$(echo "$key" | tr -d ' \r\t')
+      clean_val=$(echo "$val" | tr -d '\r')
+      if [ -n "$clean_key" ] && [ -n "$clean_val" ]; then
+        if ! grep -q "^${clean_key}=" "$PROP_FILE" 2>/dev/null; then
+          echo "${clean_key}=${clean_val}" >> "$PROP_FILE"
+          dbg "  Added prop: ${clean_key}=${clean_val}"
+        else
+          dbg "  Existing prop kept: $(grep "^${clean_key}=" "$PROP_FILE" | head -n1)"
+        fi
+      fi
+    done < "$TMP/motocamera.prop"
+  fi
+
+  if ! grep -q "persist.vendor.camera.expose.aux" "$PROP_FILE" 2>/dev/null; then
+    echo "persist.vendor.camera.expose.aux=1" >> "$PROP_FILE"
+    dbg "  Added fallback prop: persist.vendor.camera.expose.aux=1"
+  fi
+  ls -laZ "$PROP_FILE" >> "$RAW_LOG" 2>&1 || true
+fi
+
+# ------------------------------------------------------------------------------
+# 8. Deterministic Manifest-Driven Permissions & SELinux Security Contexts
+# ------------------------------------------------------------------------------
+ui_print "Applying SELinux security contexts and permissions..."
+dbg_section "APPLYING & VERIFYING SELINUX SECURITY CONTEXTS"
+
+find . ! -path "." -type d | sort | while read -r d; do
+  rel=$(echo "$d" | sed 's|^\./||')
+  case "$rel" in
+    product|system_ext) continue ;;
+  esac
+  dest=$(resolve_dest_path "$rel")
+  if [ -d "$dest" ]; then
+    set_owner 0 0 "$dest"
+    set_perm 0755 "$dest"
+    case "$rel" in
+      lib|lib/*|lib64|lib64/*|product/lib|product/lib/*|product/lib64|product/lib64/*|system_ext/lib|system_ext/lib/*|system_ext/lib64|system_ext/lib64/*)
+        set_con system_lib_file "$dest"
+        ;;
+      *)
+        set_con system_file "$dest"
+        ;;
+    esac
+  fi
+done
+
+find . -type f | sort | while read -r f; do
+  rel=$(echo "$f" | sed 's|^\./||')
+  dest=$(resolve_dest_path "$rel")
+  if [ -f "$dest" ]; then
+    set_owner 0 0 "$dest"
+    case "$rel" in
+      addon.d/*|*/bin/*|*.sh)
+        set_perm 0755 "$dest"
+        ;;
+      *)
+        set_perm 0644 "$dest"
+        ;;
+    esac
+    case "$rel" in
+      lib/*|lib64/*|product/lib/*|product/lib64/*|system_ext/lib/*|system_ext/lib64/*)
+        set_con system_lib_file "$dest"
+        ;;
+      *)
+        set_con system_file "$dest"
+        ;;
+    esac
+    ls -laZ "$dest" >> "$RAW_LOG" 2>&1 || true
+  else
+    dbg "[MISSING AFTER COPY] $dest"
+  fi
+done
+
+dbg_section "POST-INSTALL DISK SPACE & KERNEL DMESG CHECK"
+df -Pk "$SYSTEM_MNT" "$PRODUCT_OUT" "$SYSTEM_EXT_OUT" >> "$RAW_LOG" 2>&1 || true
+df -Pi "$SYSTEM_MNT" "$PRODUCT_OUT" "$SYSTEM_EXT_OUT" >> "$RAW_LOG" 2>&1 || true
+sync
+dmesg 2>/dev/null | tail -n 80 >> "$RAW_LOG" 2>&1 || true
+
+# ------------------------------------------------------------------------------
+# 9. Flush Debug Log & Cleanup
+# ------------------------------------------------------------------------------
+flush_debug_log "SUCCESS"
+cd "$TMP"
+cleanup
+
+ui_print "=================================================="
+ui_print "  Debug Installation Successful!                  "
+if [ "$HEALTH_WARNINGS" -gt 0 ]; then
+  ui_print "  ! Health Warnings Found: $HEALTH_WARNINGS (check log!)"
+else
+  ui_print "  Health Audit: PASS (0 warnings)                 "
+fi
+ui_print "  Log saved to: /tmp/motocamera_debug.log         "
+ui_print "  (& /system_ext/etc/motocamera_install_debug.log)"
+ui_print "=================================================="
+exit 0
