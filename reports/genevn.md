@@ -13,7 +13,7 @@
 - **Model Number(s):** `XT2315-1`, `XT2315-4`, `XT2315-5`
 - **Stock Camera Era:** Moto Camera 4
 - **Current Overall Status:** 🟢 **Works Perfectly**
-- **Total Community Reports:** 1
+- **Total Community Reports:** 2
 
 ---
 
@@ -22,6 +22,7 @@
 | Report | Custom ROM | Stock Firmware | Outcome | Tested Features / Notes |
 | :--- | :--- | :--- | :---: | :--- |
 | [#1](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/1) by [@vrwindsor1](https://github.com/vrwindsor1) | LineageOS 24.0 (Android 17) | U1TGNS34.42_86_2_38 (RSA stock Android 14 dump) | 🟢 Works Perfectly | Working: Main Camera, Ultrawide, Macro, Telephoto, Front Selfie, Ultra-Res, Video 4K, Slow Motion, Portrait, Pro |
+| [#2](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/2) by [@vrwindsor1](https://github.com/vrwindsor1) | LineageOS 23.2 (Android 16) | U1TGNS34M.42-86-2-25 (Lolinet mirror stock Android 14 dump) | 🟢 Works Perfectly | Working: Main Camera, Ultrawide, Macro, Telephoto, Front Selfie, Ultra-Res, Video 4K, Slow Motion, Portrait, Pro |
 
 ---
 
