@@ -72,7 +72,7 @@ banner() {
 setup_environment() {
   if [ -n "$SUDO_USER" ]; then
     local real_home
-    real_home=$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6)
+    real_home=$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6 || true)
     if [ -n "$real_home" ] && [ -d "$real_home" ]; then
       export PATH="${real_home}/.local/bin:${PATH}"
       export LD_LIBRARY_PATH="${real_home}/.local/lib:${LD_LIBRARY_PATH}"
@@ -297,7 +297,7 @@ read_prop() {
   for file in "$@"; do
     if [ -f "$file" ]; then
       local val
-      val=$(grep -E "^${key}=" "$file" 2>/dev/null | head -n1 | cut -d= -f2- | tr -d '\r')
+      val=$(grep -E "^${key}=" "$file" 2>/dev/null | head -n1 | cut -d= -f2- | tr -d '\r' || true)
       if [ -n "$val" ]; then
         echo "$val"
         return 0
@@ -336,7 +336,7 @@ profile_device() {
   # Fallback: scan product/etc/permissions/com.motorola.camera3.*.xml or camera.*.xml
   if [ -z "$DEVICE_CODENAME" ] || [ "$DEVICE_CODENAME" = "msi" ]; then
     local cam_perm
-    cam_perm=$(find "${src_root}/product/etc/permissions" -name "com.motorola.camera*.*.xml" 2>/dev/null | head -n1)
+    cam_perm=$(find "${src_root}/product/etc/permissions" -name "com.motorola.camera*.*.xml" 2>/dev/null | head -n1 || true)
     if [ -n "$cam_perm" ]; then
       local base="${cam_perm##*/}"
       local extracted_code="${base#com.motorola.camera*.}"
@@ -384,7 +384,9 @@ profile_device() {
   echo -e "    ${C_BOLD}Platform:${C_RESET}      ${PLATFORM_SOC}"
   echo -e "    ${C_BOLD}Android:${C_RESET}       ${ANDROID_VERSION} (API SDK ${SDK_LEVEL})"
   echo -e "    ${C_BOLD}Build Version:${C_RESET} ${ROM_BUILD_VERSION}"
-  [ "$ROM_BUILD_VERSION" != "$BUILD_ID" ] && [ -n "$BUILD_ID" ] && echo -e "    ${C_BOLD}Build ID:${C_RESET}      ${BUILD_ID}"
+  if [ "$ROM_BUILD_VERSION" != "$BUILD_ID" ] && [ -n "$BUILD_ID" ]; then
+    echo -e "    ${C_BOLD}Build ID:${C_RESET}      ${BUILD_ID}"
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -401,7 +403,7 @@ detect_camera_generation() {
 
   # 1. Check for Moto Camera 5 (com.motorola.camera5 / MotCamera5 / v10.x)
   local cam5_apk
-  cam5_apk=$(find "$src_root" -type f \( -name "MotCamera5.apk" -o -name "*camera5*.apk" \) 2>/dev/null | head -n1)
+  cam5_apk=$(find "$src_root" -type f \( -name "MotCamera5.apk" -o -name "*camera5*.apk" \) 2>/dev/null | head -n1 || true)
   if [ -n "$cam5_apk" ]; then
     CAMERA_GEN="camera5"
     CAMERA_GEN_NAME="Moto Camera 5"
@@ -412,7 +414,7 @@ detect_camera_generation() {
   # 2. Check for Moto Camera 4 (MotCamera4.apk or MotCamera3 with version 9.x)
   if [ -z "$CAMERA_GEN" ]; then
     local cam4_apk
-    cam4_apk=$(find "$src_root" -type f -name "MotCamera4.apk" 2>/dev/null | head -n1)
+    cam4_apk=$(find "$src_root" -type f -name "MotCamera4.apk" 2>/dev/null | head -n1 || true)
     if [ -n "$cam4_apk" ]; then
       CAMERA_GEN="camera4"
       CAMERA_GEN_NAME="Moto Camera 4"
@@ -423,25 +425,25 @@ detect_camera_generation() {
   # 3. Check for Moto Camera 3 (MotCamera3.apk / com.motorola.camera3)
   if [ -z "$CAMERA_GEN" ]; then
     local cam3_apk
-    cam3_apk=$(find "$src_root" -type f \( -name "MotCamera3.apk" -o -name "MotCamera.apk" \) 2>/dev/null | head -n1)
+    cam3_apk=$(find "$src_root" -type f \( -name "MotCamera3.apk" -o -name "MotCamera.apk" \) 2>/dev/null | head -n1 || true)
     if [ -n "$cam3_apk" ]; then
       # Distinguish Camera 4 (v9.x) vs Camera 3 (v8.x/v7.x)
       local ver_check=""
       if command -v python3 &>/dev/null; then
-        ver_check=$(python3 -c "
+        ver_check=$(python3 -c '
 import zipfile, re, sys
 try:
-    with zipfile.ZipFile('$cam3_apk', 'r') as z:
-        for name in ['classes.dex', 'classes2.dex']:
+    with zipfile.ZipFile(sys.argv[1], "r") as z:
+        for name in ["classes.dex", "classes2.dex"]:
             if name in z.namelist():
-                m = re.findall(b'9\.[0-9]+\.[0-9]+\.[0-9]+', z.read(name))
+                m = re.findall(rb"9\.[0-9]+\.[0-9]+\.[0-9]+", z.read(name))
                 if m:
-                    print('camera4')
+                    print("camera4")
                     sys.exit(0)
 except Exception:
     pass
-print('camera3')
-" 2>/dev/null || true)
+print("camera3")
+' "$cam3_apk" 2>/dev/null || true)
       fi
 
       if [ "$ver_check" = "camera4" ]; then
@@ -458,7 +460,7 @@ print('camera3')
   # 4. Check for Moto Camera 2 (MotCamera2.apk / com.motorola.camera2)
   if [ -z "$CAMERA_GEN" ]; then
     local cam2_apk
-    cam2_apk=$(find "$src_root" -type f \( -name "MotCamera2.apk" -o -name "*camera2*.apk" \) 2>/dev/null | head -n1)
+    cam2_apk=$(find "$src_root" -type f \( -name "MotCamera2.apk" -o -name "*camera2*.apk" \) 2>/dev/null | head -n1 || true)
     if [ -n "$cam2_apk" ]; then
       CAMERA_GEN="camera2"
       CAMERA_GEN_NAME="Moto Camera 2"
@@ -487,19 +489,70 @@ print('camera3')
 
   # Extract detailed version string if possible
   if [ -n "$CAMERA_MAIN_APK" ] && [ -z "$CAMERA_VER" ] && command -v python3 &>/dev/null; then
-    CAMERA_VER=$(python3 -c "
-import zipfile, re, sys
+    CAMERA_VER=$(python3 -c '
+import zipfile, re, struct, sys
+
+def axml_ver(data):
+    if len(data) < 8: return None
+    ft, fhs, fs = struct.unpack_from("<HHI", data, 0)
+    if ft != 0x0003: return None
+    pos, strings, res_ids = fhs, [], []
+    while pos + 8 <= len(data):
+        ct, chs, cs = struct.unpack_from("<HHI", data, pos)
+        if cs < 8 or pos + cs > len(data): break
+        if ct == 0x0001 and cs >= 28:
+            sc, _, flags, s_start, _ = struct.unpack_from("<IIIII", data, pos + 8)
+            utf8 = (flags & (1 << 8)) != 0
+            ob, sb = pos + chs, pos + s_start
+            for i in range(sc):
+                if ob + (i + 1) * 4 > pos + cs: break
+                idx = sb + struct.unpack_from("<I", data, ob + i * 4)[0]
+                try:
+                    if utf8:
+                        l1 = data[idx]; idx += 2 if (l1 & 0x80) else 1
+                        l2 = data[idx]; idx += 1
+                        if l2 & 0x80: l2 = ((l2 & 0x7f) << 8) | data[idx]; idx += 1
+                        strings.append(data[idx:idx + l2].decode("utf-8", errors="ignore"))
+                    else:
+                        l1 = struct.unpack_from("<H", data, idx)[0]; idx += 2
+                        if l1 & 0x8000: l1 = ((l1 & 0x7fff) << 16) | struct.unpack_from("<H", data, idx)[0]; idx += 2
+                        strings.append(data[idx:idx + l1 * 2].decode("utf-16le", errors="ignore"))
+                except Exception:
+                    strings.append("")
+        elif ct == 0x0180:
+            cnt = (cs - chs) // 4
+            res_ids = list(struct.unpack_from(f"<{cnt}I", data, pos + chs))
+        elif ct == 0x0102 and pos + chs + 20 <= len(data):
+            _, n_idx, a_start, a_size, a_cnt = struct.unpack_from("<IIHHH", data, pos + chs)
+            if n_idx < len(strings) and strings[n_idx] == "manifest":
+                ab = pos + chs + a_start
+                for i in range(a_cnt):
+                    ap = ab + i * a_size
+                    if ap + 20 > pos + cs: break
+                    _, an, araw, _, _, adt, adata = struct.unpack_from("<IIIHBBI", data, ap)
+                    if (an < len(res_ids) and res_ids[an] == 0x0101021c) or (an < len(strings) and strings[an] == "versionName"):
+                        if araw != 0xFFFFFFFF and araw < len(strings) and strings[araw]: return strings[araw].strip()
+                        if adt == 0x03 and adata < len(strings) and strings[adata]: return strings[adata].strip()
+                break
+        pos += cs
+    return None
+
 try:
-    with zipfile.ZipFile('$CAMERA_MAIN_APK', 'r') as z:
-        for name in ['classes.dex', 'classes2.dex']:
+    with zipfile.ZipFile(sys.argv[1], "r") as z:
+        if "AndroidManifest.xml" in z.namelist():
+            v = axml_ver(z.read("AndroidManifest.xml"))
+            if v:
+                print(v)
+                sys.exit(0)
+        for name in ["classes.dex", "classes2.dex"]:
             if name in z.namelist():
-                m = re.findall(b'[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+', z.read(name))
+                m = re.findall(rb"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+", z.read(name))
                 if m:
                     print(m[0].decode())
                     sys.exit(0)
 except Exception:
     pass
-" 2>/dev/null || true)
+' "$CAMERA_MAIN_APK" 2>/dev/null || true)
   fi
 
   [ -z "$CAMERA_VER" ] && CAMERA_VER="${CAMERA_GEN_NAME}"
@@ -595,14 +648,14 @@ ensure_templates() {
   # 5. Remote download from GitHub repository
   log_info "Downloading ${gen_name} recovery templates from GitHub repository..."
   local dest_base="./templates/${camera_gen}"
-  if mkdir -p "$dest_base" 2>/dev/null && [ -w "$dest_base" ]; then
+  if mkdir -p "${dest_base}/META-INF/com/google/android" "${dest_base}/addon.d" 2>/dev/null && \
+     touch "${dest_base}/.write_probe" 2>/dev/null; then
+    rm -f "${dest_base}/.write_probe" 2>/dev/null || true
     TEMPLATES_DIR="$(cd "$dest_base" && pwd)"
   else
     TEMPLATES_DIR="${target_work_dir}/downloaded_templates/${camera_gen}"
-    mkdir -p "$TEMPLATES_DIR"
+    mkdir -p "${TEMPLATES_DIR}/META-INF/com/google/android" "${TEMPLATES_DIR}/addon.d"
   fi
-
-  mkdir -p "${TEMPLATES_DIR}/META-INF/com/google/android" "${TEMPLATES_DIR}/addon.d"
 
   local files=(
     "templates/${camera_gen}/build.prop"
@@ -751,7 +804,7 @@ harvest_blobs() {
 
   # Companion AI Scene Engine
   local ai_src_dir
-  ai_src_dir=$(find "${src_root}/product" -type d -name "MotCamera*AI*" 2>/dev/null | head -n1)
+  ai_src_dir=$(find "${src_root}/product" -type d -name "MotCamera*AI*" 2>/dev/null | head -n1 || true)
   if [ -n "$ai_src_dir" ]; then
     cp -rf "$ai_src_dir" "${staging_dir}/system/product/app/"
     log_ok "Harvested AI Scene Engine: ${ai_src_dir##*/}"
@@ -906,8 +959,12 @@ build_recovery_package() {
   local build_tmp="$3"
   local camera_prop="$4"
 
-  mkdir -p "$output_dir"
-  local abs_output_dir="$(cd "$output_dir" && pwd)"
+  local abs_output_dir=""
+  if mkdir -p "$output_dir" 2>/dev/null; then
+    abs_output_dir="$(cd "$output_dir" && pwd)"
+  else
+    abs_output_dir="$output_dir"
+  fi
 
   log_info "Assembling flashable recovery installer for ${DEVICE_MODEL} (${DEVICE_CODENAME})..."
   local rec_build="${build_tmp}/recovery_build"
@@ -946,102 +1003,132 @@ EOF
     BASE_PACKAGE_NAME="MotoCameraRestored_${DEVICE_CODENAME}_Recovery_Installer"
   fi
 
-  REC_ZIP="${abs_output_dir}/${BASE_PACKAGE_NAME}.zip"
-  INFO_FILE="${abs_output_dir}/${BASE_PACKAGE_NAME}.txt"
+  local tmp_zip="${build_tmp}/${BASE_PACKAGE_NAME}.zip"
+  local tmp_info="${build_tmp}/${BASE_PACKAGE_NAME}.txt"
 
-  # Package flashable recovery ZIP
-  rm -f "$REC_ZIP"
-  (cd "$rec_build" && zip -r9q "$REC_ZIP" .)
+  # Package flashable recovery ZIP inside native temp workdir first
+  rm -f "$tmp_zip"
+  (cd "$rec_build" && zip -r9q "$tmp_zip" .)
 
   # Extract list of harvested files from staging with version info
   local extracted_files_list=""
   local extracted_count=0
   if [ -d "${staging_dir}/system" ]; then
     if command -v python3 &>/dev/null; then
-      extracted_files_list=$(python3 -c "
+      extracted_files_list=$(python3 -c '
 import os, sys, re, struct, zipfile
 
 staging_dir = sys.argv[1]
-sys_root = os.path.join(staging_dir, 'system')
+sys_root = os.path.join(staging_dir, "system")
+
+def parse_axml_version(data):
+    if len(data) < 8:
+        return None
+    f_type, f_hsize, _ = struct.unpack_from("<HHI", data, 0)
+    if f_type != 0x0003:
+        return None
+    pos = f_hsize
+    strings = []
+    res_ids = []
+    while pos + 8 <= len(data):
+        c_type, c_hsize, c_size = struct.unpack_from("<HHI", data, pos)
+        if c_size < 8 or pos + c_size > len(data):
+            break
+        if c_type == 0x0001 and c_size >= 28:
+            scount, _, flags, s_start, _ = struct.unpack_from("<IIIII", data, pos + 8)
+            is_utf8 = (flags & (1 << 8)) != 0
+            offsets_base = pos + c_hsize
+            sp_base = pos + s_start
+            for i in range(scount):
+                if offsets_base + (i + 1) * 4 > pos + c_size:
+                    break
+                off = struct.unpack_from("<I", data, offsets_base + i * 4)[0]
+                idx = sp_base + off
+                try:
+                    if is_utf8:
+                        u16_l = data[idx]; idx += 2 if (u16_l & 0x80) else 1
+                        u8_l = data[idx]; idx += 1
+                        if u8_l & 0x80:
+                            u8_l = ((u8_l & 0x7f) << 8) | data[idx]; idx += 1
+                        strings.append(data[idx:idx + u8_l].decode("utf-8", errors="ignore"))
+                    else:
+                        u16_l = struct.unpack_from("<H", data, idx)[0]; idx += 2
+                        if u16_l & 0x8000:
+                            u16_l = ((u16_l & 0x7fff) << 16) | struct.unpack_from("<H", data, idx)[0]; idx += 2
+                        strings.append(data[idx:idx + u16_l * 2].decode("utf-16le", errors="ignore"))
+                except Exception:
+                    strings.append("")
+        elif c_type == 0x0180:
+            cnt = (c_size - c_hsize) // 4
+            res_ids = list(struct.unpack_from(f"<{cnt}I", data, pos + c_hsize))
+        elif c_type == 0x0102 and pos + c_hsize + 20 <= len(data):
+            _, name_idx, attr_start, attr_size, attr_count = struct.unpack_from("<IIHHH", data, pos + c_hsize)
+            if name_idx < len(strings) and strings[name_idx] == "manifest":
+                attr_base = pos + c_hsize + attr_start
+                for i in range(attr_count):
+                    ap = attr_base + i * attr_size
+                    if ap + 20 > pos + c_size:
+                        break
+                    _, a_name, a_raw, _, _, a_dtype, a_data = struct.unpack_from("<IIIHBBI", data, ap)
+                    is_ver_name = (a_name < len(res_ids) and res_ids[a_name] == 0x0101021c) or (a_name < len(strings) and strings[a_name] == "versionName")
+                    if is_ver_name:
+                        if a_raw != 0xFFFFFFFF and a_raw < len(strings) and strings[a_raw]:
+                            return strings[a_raw].strip()
+                        if a_dtype == 0x03 and a_data < len(strings) and strings[a_data]:
+                            return strings[a_data].strip()
+                break
+        pos += c_size
+    return None
 
 def get_file_version(filepath):
     filename = os.path.basename(filepath)
 
-    m = re.search(r'@([0-9]+(?:\.[0-9]+)+)', filename)
+    m = re.search(r"@([0-9]+(?:\.[0-9]+)+)", filename)
     if m:
-        return f'v{m.group(1)}'
-    m_v = re.search(r'[-_]v([0-9]+(?:\.[0-9]+)*)', filename, re.IGNORECASE)
+        return f"v{m.group(1)}"
+    m_v = re.search(r"[-_]v([0-9]+(?:\.[0-9]+)*)", filename, re.IGNORECASE)
     if m_v:
-        return f'v{m_v.group(1)}'
-    m_so = re.search(r'\.so\.([0-9]+(?:\.[0-9]+)*)$', filename)
+        return f"v{m_v.group(1)}"
+    m_so = re.search(r"\.so\.([0-9]+(?:\.[0-9]+)*)$", filename)
     if m_so:
-        return f'v{m_so.group(1)}'
+        return f"v{m_so.group(1)}"
 
-    if filename.endswith('.apk'):
+    if filename.endswith(".apk"):
         try:
-            with zipfile.ZipFile(filepath, 'r') as z:
-                if 'AndroidManifest.xml' in z.namelist():
-                    data = z.read('AndroidManifest.xml')
-                    if len(data) > 36:
-                        res_type, h_size, c_size = struct.unpack('<HHI', data[:8])
-                        if res_type == 0x0003:
-                            sp_type, sp_h_size, sp_size = struct.unpack('<HHI', data[8:16])
-                            if sp_type == 0x0001:
-                                count, scount, flags, s_start, styles_start = struct.unpack('<IIIII', data[16:36])
-                                is_utf8 = (flags & (1 << 8)) != 0
-                                offsets = [struct.unpack('<I', data[36+i*4:40+i*4])[0] for i in range(count)]
-                                sp_data = data[8+s_start:]
-                                strings = []
-                                for off in offsets:
-                                    try:
-                                        if is_utf8:
-                                            idx = off
-                                            u16_l = sp_data[idx]
-                                            idx += 1
-                                            if u16_l & 0x80: idx += 1
-                                            u8_l = sp_data[idx]
-                                            idx += 1
-                                            if u8_l & 0x80:
-                                                u8_l = ((u8_l & 0x7f) << 8) | sp_data[idx]
-                                                idx += 1
-                                            strings.append(sp_data[idx:idx+u8_l].decode('utf-8', errors='ignore'))
-                                        else:
-                                            u16_l = struct.unpack('<H', sp_data[off:off+2])[0]
-                                            strings.append(sp_data[off+2:off+2+u16_l*2].decode('utf-16le', errors='ignore'))
-                                    except Exception:
-                                        pass
-                                candidates = [s for s in strings if re.match(r'^[0-9]+(\.[0-9]+)+', s)]
-                                if candidates:
-                                    return f'v{candidates[0]}'
-                for dex_name in ['classes.dex', 'classes2.dex']:
+            with zipfile.ZipFile(filepath, "r") as z:
+                if "AndroidManifest.xml" in z.namelist():
+                    ver_str = parse_axml_version(z.read("AndroidManifest.xml"))
+                    if ver_str:
+                        return ver_str if ver_str.lower().startswith("v") else f"v{ver_str}"
+                for dex_name in ["classes.dex", "classes2.dex"]:
                     if dex_name in z.namelist():
                         dex = z.read(dex_name)
-                        m_dex = re.findall(rb'([0-9]+\.[0-9]+(?:\.[0-9]+)+)', dex)
+                        m_dex = re.findall(rb"([0-9]+\.[0-9]+(?:\.[0-9]+)+)", dex)
                         for match in m_dex:
-                            s = match.decode('ascii', errors='ignore')
-                            if len(s) >= 3 and not s.startswith('0.0.0'):
-                                return f'v{s}'
+                            s = match.decode("ascii", errors="ignore")
+                            if len(s) >= 3 and not s.startswith("0.0.0"):
+                                return f"v{s}"
         except Exception:
             pass
 
-    if filename.endswith('.jar'):
+    if filename.endswith(".jar"):
         try:
-            with zipfile.ZipFile(filepath, 'r') as z:
-                if 'META-INF/MANIFEST.MF' in z.namelist():
-                    mf = z.read('META-INF/MANIFEST.MF').decode('utf-8', errors='ignore')
-                    m_mf = re.search(r'(?:Implementation-Version|Bundle-Version|Specification-Version):\s*([0-9]+(?:\.[0-9]+)*)', mf, re.IGNORECASE)
+            with zipfile.ZipFile(filepath, "r") as z:
+                if "META-INF/MANIFEST.MF" in z.namelist():
+                    mf = z.read("META-INF/MANIFEST.MF").decode("utf-8", errors="ignore")
+                    m_mf = re.search(r"(?:Implementation-Version|Bundle-Version|Specification-Version):\s*([0-9]+(?:\.[0-9]+)*)", mf, re.IGNORECASE)
                     if m_mf:
-                        return f'v{m_mf.group(1)}'
+                        return f"v{m_mf.group(1)}"
         except Exception:
             pass
 
-    if filename.endswith('.xml'):
+    if filename.endswith(".xml"):
         try:
-            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
-                m_xml = re.search(r'<version>([0-9]+(?:\.[0-9]+)+)</version>', content)
+                m_xml = re.search(r"<version>([0-9]+(?:\.[0-9]+)+)</version>", content)
                 if m_xml:
-                    return f'v{m_xml.group(1)}'
+                    return f"v{m_xml.group(1)}"
         except Exception:
             pass
 
@@ -1054,25 +1141,26 @@ file_list = []
 for root, dirs, files in os.walk(sys_root):
     for f in sorted(files):
         p = os.path.join(root, f)
-        rel_path = '/' + os.path.relpath(p, staging_dir)
+        rel_path = "/" + os.path.relpath(p, staging_dir)
         ver = get_file_version(p)
         if ver:
-            file_list.append(f'{rel_path}  [{ver}]')
+            file_list.append(f"{rel_path}  [{ver}]")
         else:
             file_list.append(rel_path)
 
 file_list.sort()
 for item in file_list:
     print(item)
-" "$staging_dir" 2>/dev/null)
-    else
-      extracted_files_list=$(cd "${staging_dir}" && find system -type f | sort | sed 's|^system|/system|')
+' "$staging_dir" 2>/dev/null || true)
     fi
-    extracted_count=$(echo "$extracted_files_list" | grep -c . || echo "0")
+    if [ -z "$extracted_files_list" ]; then
+      extracted_files_list=$(cd "${staging_dir}" && find system -type f | sort | sed 's|^system|/system|' || true)
+    fi
+    extracted_count=$(printf "%s\n" "$extracted_files_list" | awk 'NF{c++} END{print c+0}')
   fi
 
   # Write metadata summary text and harvested file manifest
-  cat <<EOF > "$INFO_FILE"
+  cat <<EOF > "$tmp_info"
 ================================================================================
              Moto Camera Restored — Recovery Package Build Manifest             
 ================================================================================
@@ -1091,8 +1179,8 @@ Restored Camera Suite:
   Template Module:      templates/${CAMERA_GEN}
 
 Package Outputs:
-  Recovery ZIP:         ${REC_ZIP##*/}
-  Build Manifest:       ${INFO_FILE##*/}
+  Recovery ZIP:         ${BASE_PACKAGE_NAME}.zip
+  Build Manifest:       ${BASE_PACKAGE_NAME}.txt
   Build Timestamp:      $(date -u +"%Y-%m-%d %H:%M:%S UTC")
   Extracted Files:      ${extracted_count} harvested from stock firmware
 ================================================================================
@@ -1102,6 +1190,27 @@ Harvested Files Extracted from Stock Firmware:
 ${extracted_files_list:-  (None)}
 ================================================================================
 EOF
+
+  REC_ZIP="${abs_output_dir}/${BASE_PACKAGE_NAME}.zip"
+  INFO_FILE="${abs_output_dir}/${BASE_PACKAGE_NAME}.txt"
+
+  if mkdir -p "$abs_output_dir" 2>/dev/null && \
+     cp -f "$tmp_zip" "$REC_ZIP" 2>/dev/null && \
+     cp -f "$tmp_info" "$INFO_FILE" 2>/dev/null; then
+    :
+  else
+    local fallback_out="${HOME}/Downloads/MotoCameraRestored_Output"
+    if ! mkdir -p "$fallback_out" 2>/dev/null; then
+      fallback_out="/var/tmp/MotoCameraRestored_Output"
+      mkdir -p "$fallback_out"
+    fi
+    REC_ZIP="${fallback_out}/${BASE_PACKAGE_NAME}.zip"
+    INFO_FILE="${fallback_out}/${BASE_PACKAGE_NAME}.txt"
+    cp -f "$tmp_zip" "$REC_ZIP"
+    cp -f "$tmp_info" "$INFO_FILE"
+    log_warn "Could not write new files to '${abs_output_dir}' (filesystem full or NTFS MFT exhausted)."
+    log_warn "Saved compiled recovery package and manifest to fallback directory: ${fallback_out}"
+  fi
 
   log_ok "Recovery Installer created: $REC_ZIP ($(du -h "$REC_ZIP" | cut -f1))"
   log_ok "Build manifest saved:       $INFO_FILE"
@@ -1138,12 +1247,34 @@ main() {
   local cli_template="$3"
 
   local out_dir="${cli_out:-$DEFAULT_OUTPUT_DIR}"
-  mkdir -p "$out_dir"
-  local abs_out_dir="$(cd "$out_dir" && pwd)"
+  local abs_out_dir=""
+  if mkdir -p "$out_dir" 2>/dev/null; then
+    abs_out_dir="$(cd "$out_dir" && pwd)"
+  else
+    local parent_out
+    parent_out="$(cd "$(dirname "$out_dir")" 2>/dev/null && pwd || pwd)"
+    abs_out_dir="${parent_out}/$(basename "$out_dir")"
+  fi
 
-  local base_work_dir="${abs_out_dir}/.build_tmp"
-  mkdir -p "$base_work_dir"
-  WORK_DIR="$(mktemp -d "${base_work_dir}/motocamera_build_XXXXXX" 2>/dev/null || mktemp -d /tmp/motocamera_build_XXXXXX)"
+  # Prefer native Linux temp storage (/var/tmp or $TMPDIR) when >=15GB is free
+  # to avoid slow FUSE/NTFS/WSL I/O and NTFS $MFT record exhaustion during EROFS unpack
+  WORK_DIR=""
+  for candidate_tmp in "/var/tmp" "${TMPDIR:-/tmp}"; do
+    if [ -d "$candidate_tmp" ] && [ -w "$candidate_tmp" ]; then
+      local avail_kb
+      avail_kb=$(df -Pk "$candidate_tmp" 2>/dev/null | awk 'NR==2 {print $4}' || echo "0")
+      if [ "${avail_kb:-0}" -ge 15728640 ]; then
+        WORK_DIR=$(mktemp -d "${candidate_tmp}/motocamera_build_XXXXXX" 2>/dev/null || echo "")
+        [ -n "$WORK_DIR" ] && break
+      fi
+    fi
+  done
+
+  if [ -z "$WORK_DIR" ]; then
+    local base_work_dir="${abs_out_dir}/.build_tmp"
+    mkdir -p "$base_work_dir" 2>/dev/null || true
+    WORK_DIR="$(mktemp -d "${base_work_dir}/motocamera_build_XXXXXX" 2>/dev/null || mktemp -d /tmp/motocamera_build_XXXXXX)"
+  fi
 
   log_info "Working directory initialized: $WORK_DIR"
 
