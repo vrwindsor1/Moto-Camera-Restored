@@ -110,13 +110,27 @@ check_dependencies() {
     missing+=("erofs-utils (fsck.erofs / erofs-extract)")
   fi
 
+  # Verify EXT4 extraction capability (Android 10-13 & hybrid partitions):
+  local ext4_capable=0
+  if command -v debugfs &>/dev/null; then
+    ext4_capable=1
+  elif command -v 7zz &>/dev/null || command -v 7z &>/dev/null || command -v 7za &>/dev/null; then
+    ext4_capable=1
+  elif [ "$(id -u)" -eq 0 ]; then
+    ext4_capable=1
+  fi
+
+  if [ "$ext4_capable" -eq 0 ]; then
+    missing+=("e2fsprogs (debugfs)")
+  fi
+
   if [ ${#missing[@]} -gt 0 ]; then
     log_err "Missing required build tools: ${missing[*]}"
     echo ""
     echo "Please install dependencies for your distribution:"
-    echo "  Fedora / RHEL:   sudo dnf install android-tools erofs-utils zip curl python3"
-    echo "  Ubuntu / Debian: sudo apt install android-sdk-libsparse-utils erofs-utils zip curl python3"
-    echo "  Arch Linux:      sudo pacman -S android-tools erofs-utils zip curl python"
+    echo "  Fedora / RHEL:   sudo dnf install android-tools erofs-utils e2fsprogs zip curl python3"
+    echo "  Ubuntu / Debian: sudo apt install android-sdk-libsparse-utils erofs-utils e2fsprogs zip curl python3"
+    echo "  Arch Linux:      sudo pacman -S android-tools erofs-utils e2fsprogs zip curl python"
     echo ""
     exit 1
   fi
@@ -200,6 +214,7 @@ extract_firmware() {
   if [ ${#sparse_files[@]} -gt 0 ]; then
     log_info "Recombining ${#sparse_files[@]} super sparsechunk segments with simg2img..."
     simg2img "${sparse_files[@]}" "${work_dir}/super.raw.img"
+    [ -d "${work_dir}/unpacked_zip" ] && rm -rf "${work_dir}/unpacked_zip"
     log_ok "Unpacking dynamic partitions from super.raw.img with lpunpack..."
     lpunpack "${work_dir}/super.raw.img" "$partitions_dir"
     rm -f "${work_dir}/super.raw.img"
@@ -207,7 +222,18 @@ extract_firmware() {
     local super_img="${src}/super.img"
     [ ! -f "$super_img" ] && super_img="${src}/super.raw.img"
     log_info "Found super partition image: $super_img"
-    lpunpack "$super_img" "$partitions_dir"
+    local super_magic
+    super_magic=$(od -An -tx4 -N 4 "$super_img" 2>/dev/null | tr -d ' \n' || true)
+    if [ "$super_magic" = "ed26ff3a" ]; then
+      log_info "Converting sparse super.img to raw image..."
+      simg2img "$super_img" "${work_dir}/super.raw.img"
+      [ -d "${work_dir}/unpacked_zip" ] && rm -rf "${work_dir}/unpacked_zip"
+      lpunpack "${work_dir}/super.raw.img" "$partitions_dir"
+      rm -f "${work_dir}/super.raw.img"
+    else
+      lpunpack "$super_img" "$partitions_dir"
+      [ -d "${work_dir}/unpacked_zip" ] && rm -rf "${work_dir}/unpacked_zip"
+    fi
   elif [ -f "${src}/product.img" ] || [ -f "${src}/product_a.img" ]; then
     log_info "Found existing partition images in directory."
     partitions_dir="$src"
@@ -221,6 +247,7 @@ extract_firmware() {
     if [ ${#sub_sparse[@]} -gt 0 ]; then
       log_info "Found ${#sub_sparse[@]} sparsechunks in subdirectory. Recombining..."
       simg2img "${sub_sparse[@]}" "${work_dir}/super.raw.img"
+      [ -d "${work_dir}/unpacked_zip" ] && rm -rf "${work_dir}/unpacked_zip"
       lpunpack "${work_dir}/super.raw.img" "$partitions_dir"
       rm -f "${work_dir}/super.raw.img"
     else
@@ -234,7 +261,7 @@ extract_firmware() {
   for part in product system_ext system vendor odm; do
     local img=""
     for candidate in "${partitions_dir}/${part}_a.img" "${partitions_dir}/${part}.img" "${partitions_dir}/${part}_b.img"; do
-      if [ -f "$candidate" ]; then
+      if [ -s "$candidate" ]; then
         img="$candidate"
         break
       fi
@@ -249,37 +276,98 @@ extract_firmware() {
       exit 1
     fi
 
+    # Automatically unsparse standalone sparse partition images if needed
+    local img_sparse_magic
+    img_sparse_magic=$(od -An -tx4 -N 4 "$img" 2>/dev/null | tr -d ' \n' || true)
+    if [ "$img_sparse_magic" = "ed26ff3a" ]; then
+      log_info "Converting sparse ${part} image (${img##*/}) to raw..."
+      simg2img "$img" "${work_dir}/${part}.raw.img"
+      img="${work_dir}/${part}.raw.img"
+    fi
+
+    # Detect filesystem superblock magic (EROFS: 0xe0f5e1e2 @ 1024, EXT4: 0xef53 @ 1080)
+    local fs_type="unknown"
+    local erofs_magic ext4_magic
+    erofs_magic=$(od -An -tx4 -j 1024 -N 4 "$img" 2>/dev/null | tr -d ' \n' || true)
+    ext4_magic=$(od -An -tx2 -j 1080 -N 2 "$img" 2>/dev/null | tr -d ' \n' || true)
+    if [ "$erofs_magic" = "e0f5e1e2" ]; then
+      fs_type="erofs"
+    elif [ "$ext4_magic" = "ef53" ]; then
+      fs_type="ext4"
+    fi
+
     local target_part_dir="${extracted_dir}/${part}"
     mkdir -p "$target_part_dir"
 
-    log_info "Extracting ${part} partition (${img##*/})..."
+    log_info "Extracting ${part} partition (${img##*/}, ${fs_type})..."
     local extracted=0
+    local mounted=0
 
     # Strategy 1: Loop mount if root
     if [ "$(id -u)" -eq 0 ]; then
       if mount -t erofs -o loop,ro "$img" "$target_part_dir" 2>/dev/null || mount -t ext4 -o loop,ro "$img" "$target_part_dir" 2>/dev/null; then
         MOUNTED_DIRS+=("$target_part_dir")
         extracted=1
+        mounted=1
         log_ok "Mounted ${part} partition via kernel loop."
       fi
     fi
 
-    # Strategy 2: erofs-extract or fsck.erofs
-    if [ "$extracted" -eq 0 ]; then
+    # Strategy 2: EROFS user-space extraction (erofs-extract or fsck.erofs)
+    if [ "$extracted" -eq 0 ] && [ "$fs_type" != "ext4" ]; then
       if command -v erofs-extract &>/dev/null; then
         erofs-extract --extract="$target_part_dir" --overwrite "$img" 2>/dev/null || true
       elif command -v fsck.erofs &>/dev/null; then
         fsck.erofs --extract="$target_part_dir" --overwrite "$img" 2>/dev/null || true
       fi
 
-      if [ -n "$(ls -A "$target_part_dir" 2>/dev/null)" ]; then
+      if [ -n "$(find "$target_part_dir" -mindepth 1 -maxdepth 1 2>/dev/null | head -n1 || true)" ]; then
+        chmod -R u+rwX "$target_part_dir" 2>/dev/null || true
         extracted=1
       fi
     fi
 
+    # Strategy 3: EXT4 user-space extraction (debugfs rdump or 7z/7zz/7za)
+    if [ "$extracted" -eq 0 ] && [ "$fs_type" != "erofs" ]; then
+      if command -v debugfs &>/dev/null; then
+        debugfs -R "rdump / \"${target_part_dir}\"" "$img" >/dev/null 2>&1 || true
+        chmod -R u+rwX "$target_part_dir" 2>/dev/null || true
+        if [ -n "$(find "$target_part_dir" -mindepth 1 -maxdepth 1 ! -name 'lost+found' 2>/dev/null | head -n1 || true)" ]; then
+          extracted=1
+        fi
+      fi
+
+      if [ "$extracted" -eq 0 ]; then
+        for sevenz in 7zz 7z 7za; do
+          if command -v "$sevenz" &>/dev/null; then
+            "$sevenz" x -y "$img" -o"$target_part_dir" >/dev/null 2>&1 || true
+            chmod -R u+rwX "$target_part_dir" 2>/dev/null || true
+            if [ -n "$(find "$target_part_dir" -mindepth 1 -maxdepth 1 ! -name 'lost+found' 2>/dev/null | head -n1 || true)" ]; then
+              extracted=1
+              break
+            fi
+          fi
+        done
+      fi
+    fi
+
+    # Free unpacked temporary image once extracted to keep disk footprint low
+    if [ "$mounted" -eq 0 ]; then
+      if [ "$partitions_dir" = "${work_dir}/partitions" ] && [ -f "$img" ]; then
+        rm -f "$img" 2>/dev/null || true
+      elif [ "$img" = "${work_dir}/${part}.raw.img" ]; then
+        rm -f "$img" 2>/dev/null || true
+      fi
+    fi
+
     if [ "$extracted" -eq 0 ]; then
-      log_err "Failed to extract ${part} partition (${img##*/})!"
-      log_err "Please verify that erofs-utils is installed (sudo dnf install erofs-utils / sudo apt install erofs-utils)."
+      if [ "$part" = "odm" ]; then
+        log_warn "Optional odm partition (${img##*/}) had no extractable files; skipping."
+        continue
+      fi
+      log_err "Failed to extract ${part} partition (${img##*/}, detected format: ${fs_type})!"
+      log_err "Please verify erofs-utils and e2fsprogs (debugfs) are installed:"
+      log_err "  Fedora: sudo dnf install erofs-utils e2fsprogs | Ubuntu: sudo apt install erofs-utils e2fsprogs"
       exit 1
     fi
   done
@@ -1228,6 +1316,7 @@ cleanup() {
   fi
 
   if [ -n "$WORK_DIR" ] && [ -d "$WORK_DIR" ]; then
+    chmod -R u+w "$WORK_DIR" 2>/dev/null || true
     rm -rf "$WORK_DIR" 2>/dev/null || true
   fi
 }

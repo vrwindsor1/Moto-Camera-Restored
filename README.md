@@ -85,13 +85,13 @@ We automatically track and synchronize our per-device compatibility table with t
 - A custom recovery installed on your phone (**Lineage Recovery**, **TWRP**, or **OrangeFox**).
 
 #### Host System Dependencies (Linux)
-Dynamic partition unsparse (`simg2img`), dynamic super partition extraction (`lpunpack`), and read-only `erofs` filesystem unpackers require native Linux POSIX utilities:
+Dynamic partition unsparse (`simg2img`), dynamic super partition extraction (`lpunpack`), and read-only `erofs` / `ext4` filesystem unpackers require native Linux POSIX utilities:
 
 | Distribution | Command |
 | :--- | :--- |
-| **Fedora / RHEL** | `sudo dnf install android-tools erofs-utils zip curl python3 git` |
-| **Ubuntu / Debian** | `sudo apt install android-sdk-libsparse-utils erofs-utils zip curl python3 git` |
-| **Arch Linux** | `sudo pacman -S android-tools erofs-utils zip curl python git` |
+| **Fedora / RHEL** | `sudo dnf install android-tools erofs-utils e2fsprogs zip curl python3 git` |
+| **Ubuntu / Debian** | `sudo apt install android-sdk-libsparse-utils erofs-utils e2fsprogs zip curl python3 git` |
+| **Arch Linux** | `sudo pacman -S android-tools erofs-utils e2fsprogs zip curl python git` |
 
 #### Windows Users: Windows Subsystem for Linux (WSL)
 Linux is the required operating environment. Windows users can easily run the compiler using **WSL (Ubuntu)**:
@@ -106,7 +106,7 @@ Linux is the required operating environment. Windows users can easily run the co
 2. **Install Build Dependencies in WSL:**  
    Launch **Ubuntu** from your Windows Start Menu and run:
    ```bash
-   sudo apt update && sudo apt install -y android-sdk-libsparse-utils erofs-utils zip curl python3 git
+   sudo apt update && sudo apt install -y android-sdk-libsparse-utils erofs-utils e2fsprogs zip curl python3 git
    ```
 
 3. **Access Windows Files from WSL:**  
