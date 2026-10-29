@@ -3,6 +3,8 @@ import os
 import re
 import sys
 
+OTHER_OPTION_LABEL = "Other (Please specify and follow our naming convention)"
+
 FEATURE_MAP = [
     ("Main Camera (Photo)", "Main Camera"),
     ("Ultrawide Camera", "Ultrawide"),
@@ -117,34 +119,183 @@ def determine_badge(result_text: str) -> tuple[str, str]:
         return "❔", "Untested"
     return "⚪", clean_cell(result_text)
 
-def update_compatibility_md(codename: str, badge_emoji: str, result_cat: str, compat_file: str = "COMPATIBILITY.md"):
-    """Update Status column for all occurrences of codename in COMPATIBILITY.md."""
+def extract_row_link_name(cell: str) -> str:
+    """Extract plain device name from markdown table cell like [**name**](reports/x.md)."""
+    m = re.search(r"\[(?:\*\*)?(.*?)(?:\*\*)?\]\(", cell)
+    return m.group(1).strip() if m else cell.strip()
+
+def update_compatibility_md(
+    device_name: str,
+    codename: str,
+    custom_rom: str,
+    camera_gen: str,
+    badge_emoji: str,
+    result_cat: str,
+    compat_file: str = "COMPATIBILITY.md",
+):
+    """Update Status column for codename in COMPATIBILITY.md, or insert new Community device entry."""
     if not os.path.exists(compat_file):
         print(f"[WARN] {compat_file} does not exist.")
         return
 
     with open(compat_file, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+        content = f.read()
 
+    lines = content.splitlines(keepends=True)
     target_pattern = f"reports/{codename}.md"
     target_badge_str = f" {badge_emoji} {result_cat} "
 
     updated_lines = []
     updated_count = 0
+    exact_variant_found = False
+    in_community_section = False
 
     for line in lines:
-        if target_pattern in line and line.strip().startswith("|") and line.strip().endswith("|"):
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            in_community_section = "Community / Unofficial ROM Devices" in stripped
+
+        if target_pattern in line and stripped.startswith("|") and stripped.endswith("|"):
             parts = line.split("|")
             if len(parts) >= 6:
+                row_dev_name = extract_row_link_name(parts[1])
+                if row_dev_name.lower() == device_name.lower():
+                    exact_variant_found = True
+                    if in_community_section and custom_rom and custom_rom != "—":
+                        parts[3] = f" {custom_rom} "
+                    if in_community_section and camera_gen and camera_gen != "—":
+                        parts[4] = f" {camera_gen} "
                 parts[5] = target_badge_str
+                newline = "\n" if line.endswith("\n") else ""
                 line = "|".join(parts)
+                if newline and not line.endswith("\n"):
+                    line += newline
                 updated_count += 1
         updated_lines.append(line)
 
-    with open(compat_file, "w", encoding="utf-8") as f:
-        f.writelines(updated_lines)
+    new_content = "".join(updated_lines)
 
-    print(f"[INFO] Updated {updated_count} row(s) in {compat_file} for codename '{codename}' to {badge_emoji} {result_cat}.")
+    # If this (device_name, codename) is not listed anywhere in COMPATIBILITY.md, add to Community section
+    if not exact_variant_found:
+        rom_col = custom_rom if custom_rom and custom_rom != "—" else "Unofficial / Custom ROM"
+        era_col = camera_gen if camera_gen and camera_gen != "—" else "—"
+        new_comm_row = f"| [**{device_name}**](reports/{codename}.md) | `{codename}` | {rom_col} | {era_col} | {badge_emoji} {result_cat} |"
+
+        comm_section_pattern = re.compile(
+            r"(## 🌐 Community / Unofficial ROM Devices \(\d+\)\n+.*?\n+\| Device Name \| Codename \| Reported Custom ROM \| Stock Camera Era \| Status \|\n\| :--- \| :--- \| :--- \| :--- \| :---: \|\n)((?:\|[^\n]*\n)*)",
+            re.DOTALL,
+        )
+        m_comm = comm_section_pattern.search(new_content)
+        if m_comm:
+            existing_rows_block = m_comm.group(2)
+            comm_rows = []
+            for rline in existing_rows_block.splitlines():
+                rstrip = rline.strip()
+                if not rstrip.startswith("|") or "*no community-added devices yet*" in rstrip.lower():
+                    continue
+                comm_rows.append(rstrip)
+            comm_rows.append(new_comm_row)
+            comm_rows.sort(key=lambda r: extract_row_link_name(r.split("|")[1]).lower())
+
+            new_header = re.sub(
+                r"## 🌐 Community / Unofficial ROM Devices \(\d+\)",
+                f"## 🌐 Community / Unofficial ROM Devices ({len(comm_rows)})",
+                m_comm.group(1),
+            )
+            replacement_block = new_header + "\n".join(comm_rows) + "\n"
+            new_content = new_content[:m_comm.start()] + replacement_block + new_content[m_comm.end():]
+        else:
+            # Fallback: insert Community section right before Legacy section
+            comm_section = (
+                "## 🌐 Community / Unofficial ROM Devices (1)\n\n"
+                "Motorola devices without official LineageOS Wiki entries (or regional variants) reported by the community on unofficial LineageOS builds or other custom ROMs. "
+                "Select **Other** in the [Compatibility Report Form](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=compatibility_report.yml) to add a device here.\n\n"
+                "| Device Name | Codename | Reported Custom ROM | Stock Camera Era | Status |\n"
+                "| :--- | :--- | :--- | :--- | :---: |\n"
+                f"{new_comm_row}\n\n---\n\n"
+            )
+            if "## 🏛️ Legacy / Discontinued Motorola Devices" in new_content:
+                new_content = new_content.replace(
+                    "## 🏛️ Legacy / Discontinued Motorola Devices",
+                    comm_section + "## 🏛️ Legacy / Discontinued Motorola Devices",
+                    1,
+                )
+            else:
+                new_content += "\n---\n\n" + comm_section
+
+        # Update top summary line counts if present
+        m_active = re.search(r"## 📱 Actively Maintained Motorola Devices \((\d+)\)", new_content)
+        m_comm_cnt = re.search(r"## 🌐 Community / Unofficial ROM Devices \((\d+)\)", new_content)
+        m_legacy = re.search(r"## 🏛️ Legacy / Discontinued Motorola Devices \((\d+)\)", new_content)
+        if m_active and m_comm_cnt and m_legacy:
+            a_cnt = int(m_active.group(1))
+            c_cnt = int(m_comm_cnt.group(1))
+            l_cnt = int(m_legacy.group(1))
+            total_cnt = a_cnt + c_cnt + l_cnt
+            new_content = re.sub(
+                r"> \*\*Total Motorola Devices Tracked:\*\* `[^`]+` \([^\n]+\)",
+                f"> **Total Motorola Devices Tracked:** `{total_cnt}` (`{a_cnt}` actively maintained, `{c_cnt}` community / unofficial, `{l_cnt}` discontinued)",
+                new_content,
+            )
+        print(f"[INFO] Added new Community device entry '{device_name} ({codename})' to {compat_file}.")
+    else:
+        print(f"[INFO] Updated {updated_count} row(s) in {compat_file} for '{device_name} ({codename})' to {badge_emoji} {result_cat}.")
+
+    with open(compat_file, "w", encoding="utf-8") as f:
+        f.write(new_content)
+
+def ensure_device_in_issue_template(
+    device_name: str,
+    codename: str,
+    template_file: str = ".github/ISSUE_TEMPLATE/compatibility_report.yml",
+):
+    """Ensure '<device_name> (<codename>)' is present in the issue template dropdown and 'Other' stays last."""
+    if not os.path.exists(template_file):
+        return
+
+    with open(template_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    pattern = re.compile(
+        r"(id:\s*device\s*\n\s*attributes:\s*\n\s*label:\s*[^\n]+\n\s*description:\s*[^\n]+\n\s*options:\s*\n)((?:[ \t]*- [^\n]+\n)+)"
+    )
+    m = pattern.search(content)
+    if not m:
+        return
+
+    raw_opts = []
+    for line in m.group(2).splitlines():
+        s = line.strip()
+        if s.startswith("- "):
+            val = s[2:].strip().strip('"').strip("'")
+            if val and not val.lower().startswith("other (please specify"):
+                raw_opts.append(val)
+
+    target_entry = f"{device_name} ({codename})"
+    existing_lower = {o.lower() for o in raw_opts}
+    if target_entry.lower() not in existing_lower:
+        raw_opts.append(target_entry)
+        print(f"[INFO] Added '{target_entry}' to dropdown options in {template_file}.")
+
+    raw_opts.sort(key=lambda x: x.lower())
+    raw_opts.append(OTHER_OPTION_LABEL)
+
+    new_options_block = "\n".join(f'        - "{opt}"' for opt in raw_opts) + "\n"
+    updated_content = content[:m.start()] + m.group(1) + new_options_block + content[m.end():]
+
+    if updated_content != content:
+        with open(template_file, "w", encoding="utf-8") as f:
+            f.write(updated_content)
+
+def emit_validation_error(msg: str):
+    """Export validation_error to GITHUB_OUTPUT and exit cleanly so workflow can comment helpful instructions."""
+    print(f"[WARN] Validation error: {msg}")
+    gh_output = os.environ.get("GITHUB_OUTPUT")
+    if gh_output:
+        safe_msg = msg.replace("\r", " ").replace("\n", " ")
+        with open(gh_output, "a", encoding="utf-8") as f_out:
+            f_out.write(f"validation_error={safe_msg}\n")
+    sys.exit(0)
 
 def main():
     issue_body = os.environ.get("ISSUE_BODY", "")
@@ -160,7 +311,36 @@ def main():
     print("Parsed Fields:", list(fields.keys()))
 
     device_combined = clean_cell(fields.get("Device (Marketing Name & Codename)", ""))
-    if device_combined and device_combined != "—":
+    is_other_selected = device_combined.lower().startswith("other")
+
+    if is_other_selected:
+        other_raw = fields.get("Other Device (Marketing Name & Codename)", "").strip()
+        if not other_raw or other_raw in ("_No response_", "None", "—"):
+            emit_validation_error(
+                "You selected **Other** in the Device dropdown, but left **Other Device (Marketing Name & Codename)** blank. "
+                "Please edit your issue and provide your device in the exact format `<Marketing Name> (<codename>)` — for example: `moto g power 5G - 2024 (cancunn)` or `razr+ 2023 (zeekr)`."
+            )
+        m_other = re.match(r"^(.+?)\s*\(([A-Za-z0-9][A-Za-z0-9_-]{1,31})\)\s*$", other_raw)
+        if not m_other:
+            emit_validation_error(
+                f"Could not parse **Other Device**: `{clean_cell(other_raw)}`. "
+                "Please edit your issue to strictly follow our naming convention: `<Marketing Name> (<codename>)` (omit leading 'Motorola', with the lowercase Android board codename in parentheses at the end — e.g., `moto g power 5G - 2024 (cancunn)` or `razr+ 2023 (zeekr)`)."
+            )
+        raw_name = re.sub(r"^motorola\s+", "", m_other.group(1).strip(), flags=re.IGNORECASE).strip()
+        device_name = clean_cell(raw_name)
+        codename = clean_cell(m_other.group(2)).lower()
+        if (
+            len(device_name) < 2
+            or "<" in device_name
+            or ">" in device_name
+            or device_name.lower() in ("marketing name", "other", "device", "unknown")
+            or codename in ("codename", "other", "unknown", "device")
+        ):
+            emit_validation_error(
+                f"Invalid placeholder or device identifier `{device_name} ({codename})`. "
+                "Please edit your issue with the real Motorola marketing name and Android board codename — e.g., `moto g power 5G - 2024 (cancunn)`."
+            )
+    elif device_combined and device_combined != "—":
         m = re.match(r"^(.*?)\s*\(([^()]+)\)$", device_combined)
         if m:
             device_name = clean_cell(m.group(1))
@@ -238,6 +418,44 @@ def main():
             dev_content
         )
 
+        # Update Marketing Name / Community Variant(s) if a new variant name was submitted
+        mn_match = re.search(r"- \*\*Marketing Name:\*\* (.*)", dev_content)
+        if mn_match:
+            existing_names = [n.strip() for n in mn_match.group(1).split(" / ") if n.strip()]
+            if device_name.lower() not in {n.lower() for n in existing_names}:
+                existing_names.append(device_name)
+                combined_mn = " / ".join(existing_names)
+                dev_content = dev_content.replace(mn_match.group(0), f"- **Marketing Name:** {combined_mn}")
+                dev_content = re.sub(
+                    r"^# Device Report: .*",
+                    f"# Device Report: {combined_mn} (`{codename}`)",
+                    dev_content,
+                    count=1,
+                    flags=re.MULTILINE,
+                )
+                if "**Device Source:** Community Reported" not in dev_content:
+                    cv_match = re.search(r"- \*\*Community Variant\(s\):\*\* (.*)", dev_content)
+                    if cv_match:
+                        cv_list = [c.strip() for c in cv_match.group(1).split(" / ") if c.strip()]
+                        if device_name.lower() not in {c.lower() for c in cv_list}:
+                            cv_list.append(device_name)
+                            dev_content = dev_content.replace(
+                                cv_match.group(0),
+                                f"- **Community Variant(s):** {' / '.join(cv_list)}",
+                            )
+                    else:
+                        dev_content = dev_content.replace(
+                            f"- **Marketing Name:** {combined_mn}",
+                            f"- **Marketing Name:** {combined_mn}\n- **Community Variant(s):** {device_name}",
+                        )
+
+        if camera_gen != "—":
+            dev_content = re.sub(
+                r"- \*\*Stock Camera Era:\*\* —",
+                f"- **Stock Camera Era:** {camera_gen}",
+                dev_content,
+            )
+
         if model != "—":
             m_match = re.search(r"- \*\*Model Number\(s\):\*\* (.*)", dev_content)
             if m_match:
@@ -280,6 +498,7 @@ def main():
 - **Marketing Name:** {device_name}
 - **Codename:** `{codename}`
 - **Model Number(s):** {model_val}
+- **Device Source:** Community Reported
 - **Stock Camera Era:** {camera_gen}
 - **Current Overall Status:** {badge_emoji} **{result_cat}**
 - **Total Community Reports:** 1
@@ -301,8 +520,9 @@ def main():
         with open(device_file, "w", encoding="utf-8") as f:
             f.write(new_dev_content)
 
-    # --- 2. Update COMPATIBILITY.md ---
-    update_compatibility_md(device_key, badge_emoji, result_cat)
+    # --- 2. Update COMPATIBILITY.md & Issue Template Dropdown ---
+    update_compatibility_md(device_name, device_key, custom_rom, camera_gen, badge_emoji, result_cat)
+    ensure_device_in_issue_template(device_name, device_key)
 
     # --- 3. Set GitHub Action Outputs ---
     gh_output = os.environ.get("GITHUB_OUTPUT")

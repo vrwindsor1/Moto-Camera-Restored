@@ -16,7 +16,7 @@ body:
     id: device
     attributes:
       label: Device (Marketing Name & Codename)
-      description: "Select your Motorola device from the list."
+      description: "Select your Motorola device from the list, or choose 'Other' at the bottom if your device is not listed."
       options:
         - "defy 2021 (bathena)"
         - "DROID 4 (maserati)"
@@ -115,8 +115,18 @@ body:
         - "p50 (kane)"
         - "PHOTON Q 4G LTE (xt897)"
         - "ThinkPhone by motorola (bronco)"
+        - "Other (Please specify and follow our naming convention)"
     validations:
       required: true
+
+  - type: input
+    id: other_device
+    attributes:
+      label: Other Device (Marketing Name & Codename)
+      description: "ONLY fill this out if you selected 'Other' above. Use exact format `<Marketing Name> (<codename>)` (omit leading 'Motorola', use official model styling + lowercase Android board codename in parentheses)."
+      placeholder: "e.g. moto g power 5G - 2024 (cancunn) or razr+ 2023 (zeekr)"
+    validations:
+      required: false
 
   - type: dropdown
     id: camera_generation

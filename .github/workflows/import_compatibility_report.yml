@@ -42,8 +42,47 @@ jobs:
         run: |
           python3 .github/scripts/import_compatibility_report.py
 
+      - name: Notify Reporter on Naming Convention Validation Error
+        if: steps.import_step.outputs.validation_error != ''
+        uses: actions/github-script@v7
+        env:
+          VALIDATION_ERROR: ${{ steps.import_step.outputs.validation_error }}
+        with:
+          script: |
+            const errMsg = process.env.VALIDATION_ERROR;
+            if (!context.issue || !context.issue.number || !errMsg) return;
+
+            const marker = "<!-- mcr-validation-notice -->";
+            const body = `${marker}\n⚠️ **Action Needed — Device Naming Format**\n\n${errMsg}\n\nOnce you click **Edit** on your issue above and update **Other Device (Marketing Name & Codename)**, this workflow will automatically re-run and add your device to the [Per-Device Compatibility Table](https://github.com/vrwindsor1/Moto-Camera-Restored/blob/main/COMPATIBILITY.md)!`;
+
+            try {
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number
+              });
+              const existing = comments.data.find(c => c.body && c.body.includes(marker));
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body
+                });
+              }
+            } catch (err) {
+              console.log("Error posting validation comment:", err);
+            }
+
       - name: Auto-update Issue Title with Device Name & Codename
-        if: steps.import_step.outputs.issue_title != ''
+        if: steps.import_step.outputs.validation_error == '' && steps.import_step.outputs.issue_title != ''
         uses: actions/github-script@v7
         env:
           NEW_TITLE: ${{ steps.import_step.outputs.issue_title }}
@@ -64,24 +103,26 @@ jobs:
               }
             }
 
-      - name: Commit and Push Updated COMPATIBILITY.md and reports/
+      - name: Commit and Push Updated COMPATIBILITY.md, reports/, and Issue Template
+        if: steps.import_step.outputs.validation_error == ''
         id: commit_step
         run: |
-          git add -A COMPATIBILITY.md reports/
+          git add -A COMPATIBILITY.md reports/ .github/ISSUE_TEMPLATE/compatibility_report.yml
           if git diff --cached --quiet; then
             echo "No changes detected in compatibility files."
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "Changes detected in compatibility files. Committing..."
             git config --global user.name "github-actions[bot]"
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git commit -m "Auto-import compatibility report from #${{ github.event.issue.number }} [skip ci]"
+            git pull --rebase origin main || true
             git push origin main
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Add Comment, Labels, and Handle Issue Status
-        if: steps.commit_step.outputs.changed == 'true' || steps.import_step.outputs.device_codename != ''
+        if: steps.import_step.outputs.validation_error == '' && (steps.commit_step.outputs.changed == 'true' || steps.import_step.outputs.device_codename != '')
         uses: actions/github-script@v7
         env:
           IS_WORKING_PERFECTLY: ${{ steps.import_step.outputs.is_working_perfectly }}
@@ -96,7 +137,7 @@ jobs:
               return;
             }
 
-            // 1. Fetch comments to avoid duplicate bot comments on re-runs or edits
+            // 1. Fetch comments to avoid duplicate bot confirmation comments on re-runs or edits
             let alreadyCommented = false;
             try {
               const comments = await github.rest.issues.listComments({
@@ -104,7 +145,9 @@ jobs:
                 repo: context.repo.repo,
                 issue_number: context.issue.number
               });
-              alreadyCommented = comments.data.some(c => c.user && c.user.login === 'github-actions[bot]');
+              alreadyCommented = comments.data.some(
+                c => c.user && c.user.login === 'github-actions[bot]' && c.body && c.body.includes('automatically processed and added')
+              );
             } catch (err) {
               console.log("Error listing comments:", err);
             }

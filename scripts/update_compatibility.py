@@ -13,6 +13,8 @@ import argparse
 from datetime import datetime, timezone
 import yaml
 
+OTHER_OPTION_LABEL = "Other (Please specify and follow our naming convention)"
+
 def infer_camera_generation(device):
     codename = device.get('codename', '').lower()
     release = str(device.get('release', ''))
@@ -170,20 +172,91 @@ def ensure_device_report_files(devices, reports_dir="reports"):
         with open(report_file, 'w', encoding='utf-8') as f:
             f.write(report_content)
 
-def generate_markdown(devices, output_file, reports_dir="reports"):
+def parse_community_devices(lineage_devices, reports_dir="reports"):
+    """Scan reports/*.md to preserve community-reported non-LineageOS devices and variants."""
+    community_devices = []
+    if not os.path.isdir(reports_dir):
+        return community_devices
+
+    lineage_codenames = {d['codename'].lower() for d in lineage_devices}
+    lineage_pairs = {(d['name'].lower(), d['codename'].lower()) for d in lineage_devices}
+    seen_pairs = set()
+
+    for fname in sorted(os.listdir(reports_dir)):
+        if not fname.endswith('.md'):
+            continue
+        fpath = os.path.join(reports_dir, fname)
+        try:
+            with open(fpath, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception:
+            continue
+
+        m_code = re.search(r"-\s+\*\*Codename:\*\*\s*`?([^`\n]+)`?", content)
+        codename = m_code.group(1).strip() if m_code else fname[:-3]
+
+        m_name = re.search(r"-\s+\*\*Marketing Name:\*\*\s*(.+)", content)
+        raw_names = m_name.group(1).strip() if m_name else codename
+
+        m_era = re.search(r"-\s+\*\*Stock Camera Era:\*\*\s*(.+)", content)
+        native_cam = m_era.group(1).strip() if m_era else "—"
+
+        m_status = re.search(r"-\s+\*\*Current Overall Status:\*\*\s*(.+)", content)
+        status = m_status.group(1).replace("**", "").strip() if m_status else "❔ Untested"
+
+        # Extract latest reported Custom ROM from the Community Test Reports table
+        latest_rom = "Unofficial / Custom ROM"
+        in_table = False
+        for line in content.splitlines():
+            if re.match(r"^\|\s*:?---", line):
+                in_table = True
+                continue
+            if in_table and line.strip().startswith("|"):
+                if "*no reports yet*" in line.lower():
+                    continue
+                parts = [p.strip() for p in line.strip().split("|")]
+                if len(parts) >= 4 and parts[2] and parts[2] != "—":
+                    latest_rom = parts[2]
+
+        candidate_names = []
+        if codename.lower() not in lineage_codenames:
+            candidate_names = [n.strip() for n in raw_names.split(" / ") if n.strip()]
+        else:
+            m_cv = re.search(r"-\s+\*\*Community Variant\(s\):\*\*\s*(.+)", content)
+            if m_cv:
+                candidate_names = [n.strip() for n in m_cv.group(1).split(" / ") if n.strip()]
+
+        for name in candidate_names:
+            pair = (name.lower(), codename.lower())
+            if pair not in lineage_pairs and pair not in seen_pairs:
+                seen_pairs.add(pair)
+                community_devices.append({
+                    'name': name,
+                    'codename': codename,
+                    'rom': latest_rom,
+                    'native_cam': native_cam,
+                    'status': status,
+                })
+
+    community_devices.sort(key=lambda x: x['name'].lower())
+    return community_devices
+
+def generate_markdown(devices, community_devices, output_file, reports_dir="reports"):
     active_devices = [d for d in devices if d['is_active']]
     legacy_devices = [d for d in devices if not d['is_active']]
 
     active_devices.sort(key=lambda x: x['name'].lower())
     legacy_devices.sort(key=lambda x: x['name'].lower())
+    community_devices.sort(key=lambda x: x['name'].lower())
 
+    total_tracked = len(devices) + len(community_devices)
     now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
 
     content = f"""# Per-Device Compatibility Table
 
 > **Automatic Sync:** This table is automatically generated and synchronized with the official [LineageOS Wiki](https://github.com/LineageOS/lineage_wiki) repository via GitHub Actions.  
 > **Last Updated:** `{now_utc}`  
-> **Total Motorola Devices Tracked:** `{len(devices)}` (`{len(active_devices)}` actively maintained, `{len(legacy_devices)}` discontinued)
+> **Total Motorola Devices Tracked:** `{total_tracked}` (`{len(active_devices)}` actively maintained, `{len(community_devices)}` community / unofficial, `{len(legacy_devices)}` discontinued)
 
 ---
 
@@ -227,6 +300,23 @@ Devices listed here have active LineageOS maintainers and up-to-date trees. Sinc
     content += f"""
 ---
 
+## 🌐 Community / Unofficial ROM Devices ({len(community_devices)})
+
+Motorola devices without official LineageOS Wiki entries (or regional variants) reported by the community on unofficial LineageOS builds or other custom ROMs. Select **Other** in the [Compatibility Report Form](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=compatibility_report.yml) to add a device here.
+
+| Device Name | Codename | Reported Custom ROM | Stock Camera Era | Status |
+| :--- | :--- | :--- | :--- | :---: |
+"""
+
+    if community_devices:
+        for cd in community_devices:
+            content += f"| [**{cd['name']}**](reports/{cd['codename']}.md) | `{cd['codename']}` | {cd['rom']} | {cd['native_cam']} | {cd['status']} |\n"
+    else:
+        content += "| *No community-added devices yet* | — | — | — | ❔ Untested |\n"
+
+    content += f"""
+---
+
 ## 🏛️ Legacy / Discontinued Motorola Devices ({len(legacy_devices)})
 
 These devices previously received official LineageOS builds but are no longer actively maintained upstream. Compatibility depends on community-maintained unofficial ROMs.
@@ -248,9 +338,9 @@ These devices previously received official LineageOS builds but are no longer ac
 
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(content)
-    print(f"Successfully generated {output_file} with {len(devices)} devices.")
+    print(f"Successfully generated {output_file} with {total_tracked} devices ({len(community_devices)} community).")
 
-def update_issue_template(devices, template_file=".github/ISSUE_TEMPLATE/compatibility_report.yml"):
+def update_issue_template(devices, community_devices, template_file=".github/ISSUE_TEMPLATE/compatibility_report.yml"):
     if not os.path.exists(template_file):
         return
 
@@ -258,12 +348,14 @@ def update_issue_template(devices, template_file=".github/ISSUE_TEMPLATE/compati
         content = f.read()
 
     unique_devices = {}
-    for d in devices:
-        key = (d['name'], d['codename'])
-        unique_devices[key] = True
+    for d in list(devices) + list(community_devices):
+        key = (d['name'].lower(), d['codename'].lower())
+        if key not in unique_devices:
+            unique_devices[key] = (d['name'], d['codename'])
 
-    sorted_devs = sorted(unique_devices.keys(), key=lambda x: x[0].lower())
+    sorted_devs = sorted(unique_devices.values(), key=lambda x: x[0].lower())
     option_lines = [f'        - "{name} ({codename})"' for name, codename in sorted_devs]
+    option_lines.append(f'        - "{OTHER_OPTION_LABEL}"')
     new_options_block = "\n".join(option_lines)
 
     pattern = r'(id:\s*device\s*\n\s*attributes:\s*\n\s*label:\s*[^\n]+\n\s*description:\s*[^\n]+\n\s*options:\s*\n)(?:[ \t]*- [^\n]+\n)+'
@@ -284,8 +376,9 @@ def main():
     devices_dir = os.path.join(args.wiki_path, "_data", "devices")
     devices = parse_lineage_devices(devices_dir)
     ensure_device_report_files(devices, args.reports_dir)
-    generate_markdown(devices, args.output, args.reports_dir)
-    update_issue_template(devices, args.issue_template)
+    community_devices = parse_community_devices(devices, args.reports_dir)
+    generate_markdown(devices, community_devices, args.output, args.reports_dir)
+    update_issue_template(devices, community_devices, args.issue_template)
 
 if __name__ == '__main__':
     main()

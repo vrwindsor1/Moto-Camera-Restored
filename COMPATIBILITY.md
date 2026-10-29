@@ -2,7 +2,7 @@
 
 > **Automatic Sync:** This table is automatically generated and synchronized with the official [LineageOS Wiki](https://github.com/LineageOS/lineage_wiki) repository via GitHub Actions.  
 > **Last Updated:** `2026-10-28 17:02:21 UTC`  
-> **Total Motorola Devices Tracked:** `97` (`61` actively maintained, `36` discontinued)
+> **Total Motorola Devices Tracked:** `97` (`61` actively maintained, `0` community / unofficial, `36` discontinued)
 
 ---
 
@@ -98,6 +98,16 @@ Devices listed here have active LineageOS maintainers and up-to-date trees. Sinc
 | [**one vision**](reports/kane.md) | `kane` | 24.0 | Moto Camera 2 | ❔ Untested |
 | [**p50**](reports/kane.md) | `kane` | 24.0 | Moto Camera 2 | ❔ Untested |
 | [**ThinkPhone by motorola**](reports/bronco.md) | `bronco` | 24.0 | Moto Camera 4 | ❔ Untested |
+
+---
+
+## 🌐 Community / Unofficial ROM Devices (0)
+
+Motorola devices without official LineageOS Wiki entries (or regional variants) reported by the community on unofficial LineageOS builds or other custom ROMs. Select **Other** in the [Compatibility Report Form](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/new?template=compatibility_report.yml) to add a device here.
+
+| Device Name | Codename | Reported Custom ROM | Stock Camera Era | Status |
+| :--- | :--- | :--- | :--- | :---: |
+| *No community-added devices yet* | — | — | — | ❔ Untested |
 
 ---
 
