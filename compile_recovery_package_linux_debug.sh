@@ -14,15 +14,14 @@
 #       - <ZipName>.debug.log (automatically next to the .zip on SD / USB-OTG)
 #       - /tmp/motocamera_debug.log (Recovery RAM disk)
 #       - /system_ext/etc/motocamera_install_debug.log (persists across reboots)
-#   * Generates companion PC ADB Sideload + Auto-Log-Pull wrapper scripts
-#     (.sh for Linux/macOS, .bat for Windows) that sideload the .zip and save
-#     <ZipName>.debug.log right next to the .zip on the host computer!
+#   * Generates a companion Linux ADB Sideload + Auto-Log-Pull wrapper script
+#     (.sh) that sideloads the .zip and saves <ZipName>.debug.log right next to
+#     the .zip on the Linux host!
 #
 # Generates:
 #   MotoCameraRestored_<Codename>_<BuildVersion>_DEBUG_Recovery_Installer.zip
 #   MotoCameraRestored_<Codename>_<BuildVersion>_DEBUG_Recovery_Installer.txt
 #   MotoCameraRestored_<Codename>_<BuildVersion>_DEBUG_ADB_Install.sh
-#   MotoCameraRestored_<Codename>_<BuildVersion>_DEBUG_ADB_Install.bat
 #
 # Usage:
 #   Interactive:  ./compile_recovery_package_linux_debug.sh
@@ -1299,14 +1298,12 @@ harvest_blobs() {
 }
 
 # ------------------------------------------------------------------------------
-# 9. Companion Host ADB Sideload + Auto-Log-Exporter Script Generator
+# 9. Companion Linux Host ADB Sideload + Auto-Log-Exporter Script Generator
 # ------------------------------------------------------------------------------
-generate_adb_helper_scripts() {
+generate_adb_helper_script() {
   local base_pkg_name="$1"
   local out_sh="$2"
-  local out_bat="$3"
 
-  # 1. Linux / macOS Bash Helper (.sh)
   cat <<EOF > "$out_sh"
 #!/usr/bin/env bash
 DEFAULT_ZIP_NAME="${base_pkg_name}.zip"
@@ -1314,9 +1311,9 @@ EOF
 
   cat <<'EOF_ADB_SH' >> "$out_sh"
 # ==============================================================================
-# Moto Camera Restored — Companion ADB Sideload & Diagnostic Log Collector
+# Moto Camera Restored — Companion Linux ADB Sideload & Diagnostic Log Collector
 # Installs the DEBUG recovery ZIP via ADB and automatically saves the device's
-# diagnostic install/boot log right next to the .zip file on this computer!
+# diagnostic install/boot log right next to the .zip file on this Linux machine!
 #
 # Usage:
 #   ./<script>.sh                    (Sideload ZIP + export .debug.log next to ZIP)
@@ -1491,204 +1488,6 @@ echo "==========================================================================
 EOF_ADB_SH
 
   chmod +x "$out_sh" 2>/dev/null || true
-
-  # 2. Windows Batch Helper (.bat with CRLF line endings)
-  {
-    echo "@echo off"
-    echo "setlocal EnableDelayedExpansion"
-    echo "set \"DEFAULT_ZIP_NAME=${base_pkg_name}.zip\""
-    cat <<'EOF_ADB_BAT'
-REM ============================================================================
-REM Moto Camera Restored - Companion ADB Sideload & Diagnostic Log Collector
-REM Double-click or run in Command Prompt / PowerShell to sideload the DEBUG ZIP
-REM and save <ZipName>.debug.log right next to the .zip on this PC!
-REM ============================================================================
-
-set "SCRIPT_DIR=%~dp0"
-set "PULL_ONLY=0"
-
-if /I "%~1"=="--pull-only" (
-  set "PULL_ONLY=1"
-  shift
-)
-if /I "%~1"=="--pull-log" (
-  set "PULL_ONLY=1"
-  shift
-)
-
-set "ZIP_FILE="
-if not "%~1"=="" (
-  if exist "%~1" set "ZIP_FILE=%~f1"
-)
-if not defined ZIP_FILE (
-  if exist "%SCRIPT_DIR%%DEFAULT_ZIP_NAME%" set "ZIP_FILE=%SCRIPT_DIR%%DEFAULT_ZIP_NAME%"
-)
-if not defined ZIP_FILE (
-  for %%F in ("%SCRIPT_DIR%MotoCameraRestored_*_DEBUG_Recovery_Installer.zip") do (
-    if not defined ZIP_FILE set "ZIP_FILE=%%~fF"
-  )
-)
-
-if not defined ZIP_FILE goto :err_no_zip
-if not exist "%ZIP_FILE%" goto :err_no_zip
-
-for %%Z in ("%ZIP_FILE%") do (
-  set "ZIP_DIR=%%~dpZ"
-  set "ZIP_BASE=%%~nZ"
-)
-set "LOG_FILE=%ZIP_DIR%%ZIP_BASE%.debug.log"
-set "TMP_PULL=%ZIP_DIR%.motocamera_pull_tmp.log"
-
-where adb >nul 2>&1
-if errorlevel 1 goto :err_no_adb
-
-echo ================================================================================ > "%LOG_FILE%"
-echo   MOTO CAMERA RESTORED - HOST PC ADB SIDELOAD ^& DIAGNOSTIC LOG >> "%LOG_FILE%"
-echo ================================================================================ >> "%LOG_FILE%"
-echo Timestamp: %DATE% %TIME% >> "%LOG_FILE%"
-echo ZIP Path:  %ZIP_FILE% >> "%LOG_FILE%"
-echo Log Path:  %LOG_FILE% >> "%LOG_FILE%"
-echo --- adb version --- >> "%LOG_FILE%"
-adb version >> "%LOG_FILE%" 2>&1
-echo --- initial adb devices -l --- >> "%LOG_FILE%"
-adb devices -l >> "%LOG_FILE%" 2>&1
-echo. >> "%LOG_FILE%"
-
-echo ================================================================================
-echo   Moto Camera Restored - Debug ADB Installer ^& Log Collector
-echo ================================================================================
-echo   ZIP Package: %ZIP_FILE%
-echo   Debug Log:   %LOG_FILE%
-echo ================================================================================
-
-if "%PULL_ONLY%"=="1" goto :step_pull
-
-adb devices | findstr /R /C:"[ 	]sideload$" >nul 2>&1
-if not errorlevel 1 goto :do_sideload
-
-echo.
-echo [1/3] Waiting for phone in Recovery Sideload mode...
-echo       -^> LineageOS Recovery: Tap "Apply Update" -^> "Apply from ADB"
-echo       -^> TWRP / OrangeFox:   Tap "Advanced" -^> "ADB Sideload" -^> Swipe
-
-:wait_sideload
-timeout /t 2 /nobreak >nul
-adb devices | findstr /R /C:"[ 	]sideload$" >nul 2>&1
-if errorlevel 1 goto :wait_sideload
-
-:do_sideload
-echo.
-echo [2/3] Sideloading %ZIP_BASE%.zip ...
-echo       (If phone asks "Signature verification failed. Install anyway?", tap "Yes"!)
-echo ================================================================================ >> "%LOG_FILE%"
-echo   ADB SIDELOAD OUTPUT >> "%LOG_FILE%"
-echo ================================================================================ >> "%LOG_FILE%"
-adb sideload "%ZIP_FILE%" >> "%LOG_FILE%" 2>&1
-set "SIDELOAD_RC=%ERRORLEVEL%"
-echo adb sideload exit code: %SIDELOAD_RC%
-echo adb sideload exit code: %SIDELOAD_RC% >> "%LOG_FILE%"
-
-:step_pull
-echo.
-echo [3/3] Waiting for ADB connection to pull on-device diagnostic log...
-echo       IMPORTANT (LineageOS Recovery):
-echo         adb sideload closes USB until you re-enable ADB or boot Android.
-echo         Do ONE of the following on the phone right now:
-echo           Option A (Recommended): Tap Back -^> "Advanced" -^> "Enable ADB"
-echo           Option B (Booted OS):   Tap "Reboot system now" (with USB Debugging on)
-echo       (TWRP / OrangeFox reconnects automatically in ~3 seconds.)
-echo.
-
-set "DETECTED_MODE="
-set /A TRIES=0
-
-:poll_adb
-set /A TRIES+=1
-if %TRIES% GTR 90 goto :poll_timeout
-adb devices | findstr /R /C:"[ 	]recovery$" >nul 2>&1
-if not errorlevel 1 (
-  set "DETECTED_MODE=recovery"
-  goto :pull_recovery
-)
-adb devices | findstr /R /C:"[ 	]device$" >nul 2>&1
-if not errorlevel 1 (
-  set "DETECTED_MODE=device"
-  goto :pull_device
-)
-timeout /t 2 /nobreak >nul
-goto :poll_adb
-
-:pull_recovery
-echo [OK] Connected to phone in Recovery mode! Pulling diagnostic logs...
-if exist "%TMP_PULL%" del /f /q "%TMP_PULL%" >nul 2>&1
-adb pull /tmp/motocamera_debug.log "%TMP_PULL%" >nul 2>&1
-if exist "%TMP_PULL%" (
-  echo. >> "%LOG_FILE%"
-  echo ================================================================================ >> "%LOG_FILE%"
-  echo   PULLED ON-DEVICE INSTALLER LOG (/tmp/motocamera_debug.log) >> "%LOG_FILE%"
-  echo ================================================================================ >> "%LOG_FILE%"
-  type "%TMP_PULL%" >> "%LOG_FILE%"
-  del /f /q "%TMP_PULL%" >nul 2>&1
-)
-echo. >> "%LOG_FILE%"
-echo ================================================================================ >> "%LOG_FILE%"
-echo   RECOVERY LOG TAIL (/tmp/recovery.log) >> "%LOG_FILE%"
-echo ================================================================================ >> "%LOG_FILE%"
-adb shell "tail -n 200 /tmp/recovery.log 2>/dev/null" >> "%LOG_FILE%" 2>&1
-goto :done_ok
-
-:pull_device
-echo [OK] Connected to booted Android OS! Pulling persistent install log ^& boot/camera logcat...
-if exist "%TMP_PULL%" del /f /q "%TMP_PULL%" >nul 2>&1
-adb pull /system_ext/etc/motocamera_install_debug.log "%TMP_PULL%" >nul 2>&1
-if exist "%TMP_PULL%" (
-  echo. >> "%LOG_FILE%"
-  echo ================================================================================ >> "%LOG_FILE%"
-  echo   PULLED PERSISTENT INSTALLER LOG (/system_ext/etc/motocamera_install_debug.log) >> "%LOG_FILE%"
-  echo ================================================================================ >> "%LOG_FILE%"
-  type "%TMP_PULL%" >> "%LOG_FILE%"
-  del /f /q "%TMP_PULL%" >nul 2>&1
-)
-echo. >> "%LOG_FILE%"
-echo ================================================================================ >> "%LOG_FILE%"
-echo   ANDROID RUNTIME DEVICE STATE ^& FILTERED CAMERA / BOOT LOGCAT >> "%LOG_FILE%"
-echo ================================================================================ >> "%LOG_FILE%"
-adb shell "getprop sys.boot_completed; getprop ro.build.display.id; pm list packages -f | grep -iE 'motorola|camera|imager'" >> "%LOG_FILE%" 2>&1
-adb logcat -d | findstr /I "FATAL AndroidRuntime IllegalStateException PermissionManager PackageManager SELinux avc: nativeloader vintf CameraService MotCamera ImagerTuning imgtuner" >> "%LOG_FILE%" 2>&1
-goto :done_ok
-
-:poll_timeout
-echo [WARN] Timed out waiting for post-sideload ADB connection (180s).
-echo [WARN] Timed out waiting for post-sideload ADB connection (180s). >> "%LOG_FILE%"
-echo        You can re-run "%~nx0 --pull-only" once ADB is enabled or booted.
-goto :done_finish
-
-:done_ok
-echo.
-echo ================================================================================
-echo   [SUCCESS] Diagnostic debug log saved right next to the ZIP:
-echo   --^> %LOG_FILE%
-echo ================================================================================
-goto :done_finish
-
-:err_no_zip
-echo [ERROR] Could not find debug recovery ZIP next to this script!
-echo         Expected: %SCRIPT_DIR%%DEFAULT_ZIP_NAME%
-pause
-exit /b 1
-
-:err_no_adb
-echo [ERROR] "adb" was not found in PATH! Please install Android platform-tools
-echo         or place adb.exe + AdbWinApi.dll in this folder.
-pause
-exit /b 1
-
-:done_finish
-if exist "%TMP_PULL%" del /f /q "%TMP_PULL%" >nul 2>&1
-pause
-exit /b 0
-EOF_ADB_BAT
-  } | sed 's/\r$//; s/$/\r/' > "$out_bat"
 }
 
 # ------------------------------------------------------------------------------
@@ -1753,14 +1552,13 @@ EOF
   local tmp_zip="${build_tmp}/${BASE_PACKAGE_NAME}.zip"
   local tmp_info="${build_tmp}/${BASE_PACKAGE_NAME}.txt"
   local tmp_adb_sh="${build_tmp}/${helper_prefix}.sh"
-  local tmp_adb_bat="${build_tmp}/${helper_prefix}.bat"
 
   # Package flashable recovery ZIP inside native temp workdir first
   rm -f "$tmp_zip"
   (cd "$rec_build" && zip -r9q "$tmp_zip" .)
 
-  # Generate companion Linux/macOS (.sh) and Windows (.bat) ADB sideload + log export scripts
-  generate_adb_helper_scripts "$BASE_PACKAGE_NAME" "$tmp_adb_sh" "$tmp_adb_bat"
+  # Generate companion Linux (.sh) ADB sideload + log export script
+  generate_adb_helper_script "$BASE_PACKAGE_NAME" "$tmp_adb_sh"
 
   # Extract list of harvested files from staging with version info
   local extracted_files_list=""
@@ -1933,8 +1731,7 @@ Restored Camera Suite:
 Package Outputs:
   Debug Recovery ZIP:   ${BASE_PACKAGE_NAME}.zip
   Build Manifest:       ${BASE_PACKAGE_NAME}.txt
-  Linux/macOS ADB Tool: ${helper_prefix}.sh
-  Windows ADB Tool:     ${helper_prefix}.bat
+  Linux ADB Tool:       ${helper_prefix}.sh
   Expected Debug Log:   ${BASE_PACKAGE_NAME}.debug.log
   Build Timestamp:      $(date -u +"%Y-%m-%d %H:%M:%S UTC")
   Extracted Files:      ${extracted_count} harvested from stock firmware
@@ -1949,13 +1746,11 @@ EOF
   REC_ZIP="${abs_output_dir}/${BASE_PACKAGE_NAME}.zip"
   INFO_FILE="${abs_output_dir}/${BASE_PACKAGE_NAME}.txt"
   ADB_SH_FILE="${abs_output_dir}/${helper_prefix}.sh"
-  ADB_BAT_FILE="${abs_output_dir}/${helper_prefix}.bat"
 
   if mkdir -p "$abs_output_dir" 2>/dev/null && \
      cp -f "$tmp_zip" "$REC_ZIP" 2>/dev/null && \
      cp -f "$tmp_info" "$INFO_FILE" 2>/dev/null && \
-     cp -f "$tmp_adb_sh" "$ADB_SH_FILE" 2>/dev/null && \
-     cp -f "$tmp_adb_bat" "$ADB_BAT_FILE" 2>/dev/null; then
+     cp -f "$tmp_adb_sh" "$ADB_SH_FILE" 2>/dev/null; then
     chmod +x "$ADB_SH_FILE" 2>/dev/null || true
   else
     local fallback_out="${HOME}/Downloads/MotoCameraRestored_Output"
@@ -1966,20 +1761,17 @@ EOF
     REC_ZIP="${fallback_out}/${BASE_PACKAGE_NAME}.zip"
     INFO_FILE="${fallback_out}/${BASE_PACKAGE_NAME}.txt"
     ADB_SH_FILE="${fallback_out}/${helper_prefix}.sh"
-    ADB_BAT_FILE="${fallback_out}/${helper_prefix}.bat"
     cp -f "$tmp_zip" "$REC_ZIP"
     cp -f "$tmp_info" "$INFO_FILE"
     cp -f "$tmp_adb_sh" "$ADB_SH_FILE"
-    cp -f "$tmp_adb_bat" "$ADB_BAT_FILE"
     chmod +x "$ADB_SH_FILE" 2>/dev/null || true
     log_warn "Could not write new files to '${abs_output_dir}' (filesystem full or NTFS MFT exhausted)."
-    log_warn "Saved compiled debug recovery package & ADB helpers to fallback directory: ${fallback_out}"
+    log_warn "Saved compiled debug recovery package & Linux ADB helper to fallback directory: ${fallback_out}"
   fi
 
   log_ok "Debug Recovery ZIP created: $REC_ZIP ($(du -h "$REC_ZIP" | cut -f1))"
   log_ok "Build manifest saved:       $INFO_FILE"
-  log_ok "Linux/macOS ADB Installer:  $ADB_SH_FILE"
-  log_ok "Windows ADB Installer:      $ADB_BAT_FILE"
+  log_ok "Linux ADB Installer:        $ADB_SH_FILE"
 }
 
 # ------------------------------------------------------------------------------
@@ -2064,7 +1856,7 @@ main() {
 
   echo ""
   echo -e "${C_BOLD}${C_GREEN}================================================================================"
-  echo "            DEBUG Recovery Package & ADB Log Tools Compiled Successfully!       "
+  echo "            DEBUG Recovery Package & ADB Log Tool Compiled Successfully!        "
   echo -e "================================================================================${C_RESET}"
   echo ""
   echo "Target Device:"
@@ -2077,14 +1869,13 @@ main() {
   echo "Package Outputs:"
   echo "  --> Debug ZIP:       ${REC_ZIP}"
   echo "  --> Manifest:        ${INFO_FILE}"
-  echo "  --> Linux/Mac ADB:   ${ADB_SH_FILE}"
-  echo "  --> Windows ADB:     ${ADB_BAT_FILE}"
+  echo "  --> Linux ADB Tool:  ${ADB_SH_FILE}"
   echo ""
-  echo "How to install via ADB & automatically dump a .debug.log next to the ZIP:"
-  echo "  1. Send BOTH the .zip AND the _ADB_Install.sh (Linux/Mac) or _ADB_Install.bat (Windows)"
-  echo "     to the folder where you/your tester will run ADB."
+  echo "How to install via ADB on Linux & dump a .debug.log next to the ZIP:"
+  echo "  1. Keep BOTH the .zip AND '${ADB_SH_FILE##*/}' in the same folder."
   echo "  2. Boot phone into Recovery -> 'Apply Update' -> 'Apply from ADB'."
-  echo "  3. Run '${ADB_SH_FILE##*/}' (or double-click '${ADB_BAT_FILE##*/}' on Windows)."
+  echo "  3. Run:"
+  echo "       ./${ADB_SH_FILE##*/}"
   echo "  4. After sideload completes, tap 'Advanced -> Enable ADB' in Lineage Recovery"
   echo "     (or reboot into Android with USB Debugging on). The script automatically saves:"
   echo "       ${REC_ZIP%.zip}.debug.log"
