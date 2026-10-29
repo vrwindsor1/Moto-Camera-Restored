@@ -22,7 +22,7 @@
 | Report | Custom ROM | Stock Firmware | Outcome | Tested Features / Notes |
 | :--- | :--- | :--- | :---: | :--- |
 | [#3](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/3) by [@steveeaves-ai](https://github.com/steveeaves-ai) | Chara 2.0 Android 17 | — | ⛔ Won't Boot | — |
-| [#4](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/4) by [@steveeaves-ai](https://github.com/steveeaves-ai) | Chara 2.0 | — | 🟡 Mostly Working | Working: Macro, Telephoto, Front Selfie, Ultra-Res, Portrait, Pro; Fails: Main Camera, Video 4K, Slow Motion |
+| [#4](https://github.com/vrwindsor1/Moto-Camera-Restored/issues/4) by [@steveeaves-ai](https://github.com/steveeaves-ai) | Chara 2.0 | — | 🟡 Mostly Working | Working: Main Camera, Macro, Telephoto, Front Selfie, Ultra-Res, Portrait, Pro; Fails: Video 4K, Slow Motion |
 
 ---
 
