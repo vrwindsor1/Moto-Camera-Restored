@@ -155,13 +155,22 @@ fi
 ui_print "  - Active slot: ${SLOT_SUFFIX:-none}"
 
 # Unmount any existing mounts
+# Capture original mount points BEFORE unmounting (for fallback detection)
+ORIG_SYSTEM_MOUNT=$(awk '$2=="/system" || $2=="/mnt/system" {print $1}' /proc/mounts 2>/dev/null | head -1)
+ORIG_PRODUCT_MOUNT=$(awk '$2~/\/product$/ {print $1}' /proc/mounts 2>/dev/null | head -1)
+ORIG_SYSTEM_EXT_MOUNT=$(awk '$2~/\/system_ext$/ {print $1}' /proc/mounts 2>/dev/null | head -1)
+
+# Unmount existing mounts
 umount /product 2>/dev/null || umount /mnt/product 2>/dev/null || true
 umount /system_ext 2>/dev/null || umount /mnt/system_ext 2>/dev/null || true
 umount /system 2>/dev/null || umount /mnt/system 2>/dev/null || true
 
 SYSTEM_BLOCK=$(find_block "system")
+[ -z "$SYSTEM_BLOCK" ] && SYSTEM_BLOCK=$ORIG_SYSTEM_MOUNT
 PRODUCT_BLOCK=$(find_block "product")
+[ -z "$PRODUCT_BLOCK" ] && PRODUCT_BLOCK=$ORIG_PRODUCT_MOUNT
 SYSTEM_EXT_BLOCK=$(find_block "system_ext")
+[ -z "$SYSTEM_EXT_BLOCK" ] && SYSTEM_EXT_BLOCK=$ORIG_SYSTEM_EXT_MOUNT
 
 ui_print "Disabling block device write protection..."
 [ -n "$SYSTEM_BLOCK" ] && blockdev --setrw "$SYSTEM_BLOCK" 2>/dev/null || true
@@ -199,9 +208,10 @@ if [ -n "$PRODUCT_BLOCK" ]; then
   fi
 fi
 if [ -z "$PRODUCT_OUT" ]; then
-  if [ -d "${SYSTEM_OUT}/product" ] && [ ! -L "${SYSTEM_OUT}/product" ]; then
+  # Follow symlinks for product - some ROMs have it as a symlink in /system
+  if [ -d "${SYSTEM_OUT}/product" ]; then
     PRODUCT_OUT="${SYSTEM_OUT}/product"
-  elif [ -d "${SYSTEM_MNT}/product" ] && [ ! -L "${SYSTEM_MNT}/product" ]; then
+  elif [ -d "${SYSTEM_MNT}/product" ]; then
     PRODUCT_OUT="${SYSTEM_MNT}/product"
   else
     error "Could not mount product partition ($PRODUCT_BLOCK)! Aborting."
@@ -219,9 +229,10 @@ if [ -n "$SYSTEM_EXT_BLOCK" ]; then
   fi
 fi
 if [ -z "$SYSTEM_EXT_OUT" ]; then
-  if [ -d "${SYSTEM_OUT}/system_ext" ] && [ ! -L "${SYSTEM_OUT}/system_ext" ]; then
+  # Follow symlinks for system_ext - some ROMs have it as a symlink in /system
+  if [ -d "${SYSTEM_OUT}/system_ext" ]; then
     SYSTEM_EXT_OUT="${SYSTEM_OUT}/system_ext"
-  elif [ -d "${SYSTEM_MNT}/system_ext" ] && [ ! -L "${SYSTEM_MNT}/system_ext" ]; then
+  elif [ -d "${SYSTEM_MNT}/system_ext" ]; then
     SYSTEM_EXT_OUT="${SYSTEM_MNT}/system_ext"
   else
     error "Could not mount system_ext partition ($SYSTEM_EXT_BLOCK)! Aborting."
@@ -253,15 +264,33 @@ ui_print "Installing Motorola Camera 4 Suite components..."
 # Product partition (MotCamera4, MotCamera3AI, permissions, audio)
 if [ -d "product" ] && [ -n "$PRODUCT_OUT" ]; then
   ui_print "  - Installing Product apps and configurations..."
-  mkdir -p "$PRODUCT_OUT"
-  cp -rf product/* "$PRODUCT_OUT/" || error "Failed writing to product partition (check free space)!"
+  ui_print "    Destination: $PRODUCT_OUT"
+  mkdir -p "$PRODUCT_OUT" || { ui_print "Warning: Could not create directory $PRODUCT_OUT"; }
+  # Check if destination is writable
+  if [ ! -w "$PRODUCT_OUT" ]; then
+    error "Destination $PRODUCT_OUT is not writable! Aborting."
+  fi
+  if cp -rf product/* "$PRODUCT_OUT/" 2>&1; then
+    ui_print "  - Product partition updated successfully"
+  else
+    error "Failed writing to product partition ($PRODUCT_OUT)! Check free space and write permissions."
+  fi
 fi
 
 # System_ext partition (ImagerTuning, MotCameraDesktop, frameworks, libs)
 if [ -d "system_ext" ] && [ -n "$SYSTEM_EXT_OUT" ]; then
   ui_print "  - Installing System_ext apps, frameworks, and native libraries..."
-  mkdir -p "$SYSTEM_EXT_OUT"
-  cp -rf system_ext/* "$SYSTEM_EXT_OUT/" || error "Failed writing to system_ext partition (check free space)!"
+  ui_print "    Destination: $SYSTEM_EXT_OUT"
+  mkdir -p "$SYSTEM_EXT_OUT" || { ui_print "Warning: Could not create directory $SYSTEM_EXT_OUT"; }
+  # Check if destination is writable
+  if [ ! -w "$SYSTEM_EXT_OUT" ]; then
+    error "Destination $SYSTEM_EXT_OUT is not writable! Aborting."
+  fi
+  if cp -rf system_ext/* "$SYSTEM_EXT_OUT/" 2>&1; then
+    ui_print "  - System_ext partition updated successfully"
+  else
+    error "Failed writing to system_ext partition ($SYSTEM_EXT_OUT)! Check free space and write permissions."
+  fi
 fi
 
 # System partition (motosignature, moto-settings, moto-core_services, addon.d)
