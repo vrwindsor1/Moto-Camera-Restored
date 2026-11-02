@@ -2,7 +2,7 @@ name: "Import Compatibility Report"
 
 on:
   issues:
-    types: [opened, edited, labeled]
+    types: [opened, edited, labeled, closed]
   workflow_dispatch:
 
 permissions:
@@ -39,6 +39,9 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_STATE: ${{ github.event.issue.state }}
+          ISSUE_STATE_REASON: ${{ github.event.issue.state_reason }}
+          ISSUE_LABELS: ${{ join(github.event.issue.labels.*.name, ',') }}
         run: |
           python3 .github/scripts/import_compatibility_report.py
 
@@ -82,7 +85,7 @@ jobs:
             }
 
       - name: Auto-update Issue Title with Device Name & Codename
-        if: steps.import_step.outputs.validation_error == '' && steps.import_step.outputs.issue_title != ''
+        if: steps.import_step.outputs.validation_error == '' && steps.import_step.outputs.is_duplicate != 'true' && steps.import_step.outputs.issue_title != ''
         uses: actions/github-script@v7
         env:
           NEW_TITLE: ${{ steps.import_step.outputs.issue_title }}
@@ -115,14 +118,18 @@ jobs:
             echo "Changes detected in compatibility files. Committing..."
             git config --global user.name "github-actions[bot]"
             git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "Auto-import compatibility report from #${{ github.event.issue.number }} [skip ci]"
+            if [ "${{ steps.import_step.outputs.is_duplicate }}" = "true" ]; then
+              git commit -m "Remove duplicate compatibility report #${{ github.event.issue.number }} [skip ci]"
+            else
+              git commit -m "Auto-import compatibility report from #${{ github.event.issue.number }} [skip ci]"
+            fi
             git pull --rebase origin main || true
             git push origin main
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Add Comment, Labels, and Handle Issue Status
-        if: steps.import_step.outputs.validation_error == '' && (steps.commit_step.outputs.changed == 'true' || steps.import_step.outputs.device_codename != '')
+        if: steps.import_step.outputs.validation_error == '' && steps.import_step.outputs.is_duplicate != 'true' && (steps.commit_step.outputs.changed == 'true' || steps.import_step.outputs.device_codename != '')
         uses: actions/github-script@v7
         env:
           IS_WORKING_PERFECTLY: ${{ steps.import_step.outputs.is_working_perfectly }}

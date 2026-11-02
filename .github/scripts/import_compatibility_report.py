@@ -18,6 +18,38 @@ FEATURE_MAP = [
     ("Pro / Manual Mode", "Pro"),
 ]
 
+STATUS_RANK = {
+    "works perfectly": 1,
+    "mostly working": 2,
+    "app crashes": 3,
+    "app missing": 4,
+    "won't boot": 5,
+    "wont boot": 5,
+    "won't compile": 6,
+    "wont compile": 6,
+    "compile fail": 6,
+    "untested": 7,
+}
+
+def get_status_rank(status_text: str) -> int:
+    text = status_text.lower()
+    for key, rank in STATUS_RANK.items():
+        if key in text:
+            return rank
+    return 99
+
+def get_device_latest_issue(codename: str, reports_dir: str = "reports") -> int:
+    report_file = os.path.join(reports_dir, f"{codename}.md")
+    if not os.path.exists(report_file):
+        return 0
+    try:
+        with open(report_file, "r", encoding="utf-8") as f:
+            content = f.read()
+        nums = [int(n) for n in re.findall(r"\[#(\d+)\]", content)]
+        return max(nums, default=0)
+    except Exception:
+        return 0
+
 def clean_cell(text: str) -> str:
     """Sanitize text for markdown table cells."""
     if not text or text.strip() in ("_No response_", "None", "n/a", "N/A"):
@@ -124,6 +156,56 @@ def extract_row_link_name(cell: str) -> str:
     m = re.search(r"\[(?:\*\*)?(.*?)(?:\*\*)?\]\(", cell)
     return m.group(1).strip() if m else cell.strip()
 
+def report_row_sort_key(row: str) -> tuple[int, int]:
+    """Sort key for community report rows: most successful first, then newest issue # first."""
+    parts = [p.strip() for p in row.split("|")]
+    if len(parts) >= 5:
+        outcome = parts[4]
+        m_issue = re.search(r"#(\d+)", parts[1])
+        issue_num = int(m_issue.group(1)) if m_issue else 0
+        return (get_status_rank(outcome), -issue_num)
+    return (99, 0)
+
+def table_row_sort_key(row: str, reports_dir: str = "reports") -> tuple[int, int, str]:
+    """Sort key for COMPATIBILITY.md device rows: most successful first, then newest issue #, then name."""
+    parts = [p.strip() for p in row.split("|")]
+    if len(parts) < 6:
+        return (99, 0, "")
+    dev_name = extract_row_link_name(parts[1])
+    m_code = re.search(r"reports/([^.]+)\.md", parts[1])
+    codename = m_code.group(1) if m_code else parts[2].replace("`", "").strip()
+    status_str = parts[5]
+    rank = get_status_rank(status_str)
+    latest_issue = get_device_latest_issue(codename, reports_dir)
+    return (rank, -latest_issue, dev_name.lower())
+
+def resort_compatibility_sections(content: str, reports_dir: str = "reports") -> str:
+    """Re-sort each table in COMPATIBILITY.md by most successful first, then latest issue # descending, then name."""
+    pattern = re.compile(
+        r"(\| Device Name \| Codename \| [^\n]+\|\n\| :--- \| :--- \| [^\n]+\|\n)((?:\|[^\n]*\n)+)"
+    )
+
+    def sort_match(match):
+        header = match.group(1)
+        rows_block = match.group(2)
+        rows = []
+        for line in rows_block.splitlines():
+            line_str = line.strip()
+            if not line_str.startswith("|") or "*no community-added devices yet*" in line_str.lower():
+                continue
+            rows.append(line_str)
+
+        had_placeholder = any("*no community-added devices yet*" in l.lower() for l in rows_block.splitlines())
+        if not rows:
+            if had_placeholder:
+                return header + "| *No community-added devices yet* | — | — | — | ❔ Untested |\n"
+            return header + match.group(2)
+
+        rows.sort(key=lambda r: table_row_sort_key(r, reports_dir))
+        return header + "\n".join(rows) + "\n"
+
+    return pattern.sub(sort_match, content)
+
 def update_compatibility_md(
     device_name: str,
     codename: str,
@@ -132,8 +214,9 @@ def update_compatibility_md(
     badge_emoji: str,
     result_cat: str,
     compat_file: str = "COMPATIBILITY.md",
+    reports_dir: str = "reports",
 ):
-    """Update Status column for codename in COMPATIBILITY.md, or insert new Community device entry."""
+    """Update Status column for codename in COMPATIBILITY.md, insert new Community device entry if needed, and re-sort."""
     if not os.path.exists(compat_file):
         print(f"[WARN] {compat_file} does not exist.")
         return
@@ -176,7 +259,7 @@ def update_compatibility_md(
     new_content = "".join(updated_lines)
 
     # If this (device_name, codename) is not listed anywhere in COMPATIBILITY.md, add to Community section
-    if not exact_variant_found:
+    if not exact_variant_found and not any(target_pattern in l for l in lines):
         rom_col = custom_rom if custom_rom and custom_rom != "—" else "Unofficial / Custom ROM"
         era_col = camera_gen if camera_gen and camera_gen != "—" else "—"
         new_comm_row = f"| [**{device_name}**](reports/{codename}.md) | `{codename}` | {rom_col} | {era_col} | {badge_emoji} {result_cat} |"
@@ -195,7 +278,6 @@ def update_compatibility_md(
                     continue
                 comm_rows.append(rstrip)
             comm_rows.append(new_comm_row)
-            comm_rows.sort(key=lambda r: extract_row_link_name(r.split("|")[1]).lower())
 
             new_header = re.sub(
                 r"## 🌐 Community / Unofficial ROM Devices \(\d+\)",
@@ -240,6 +322,9 @@ def update_compatibility_md(
         print(f"[INFO] Added new Community device entry '{device_name} ({codename})' to {compat_file}.")
     else:
         print(f"[INFO] Updated {updated_count} row(s) in {compat_file} for '{device_name} ({codename})' to {badge_emoji} {result_cat}.")
+
+    # Re-sort all tables: most successful first, then newest issue #, then name
+    new_content = resort_compatibility_sections(new_content, reports_dir)
 
     with open(compat_file, "w", encoding="utf-8") as f:
         f.write(new_content)
@@ -297,11 +382,130 @@ def emit_validation_error(msg: str):
             f_out.write(f"validation_error={safe_msg}\n")
     sys.exit(0)
 
+def handle_duplicate_issue(issue_number: str, reports_dir: str = "reports", compat_file: str = "COMPATIBILITY.md"):
+    """Handle an issue closed as a duplicate by removing its report from reports/*.md and updating COMPATIBILITY.md."""
+    issue_marker = f"[#{issue_number}]("
+    issue_marker_alt = f"#{issue_number}"
+    target_file = None
+    target_codename = None
+
+    for fname in os.listdir(reports_dir):
+        if not fname.endswith(".md"):
+            continue
+        fpath = os.path.join(reports_dir, fname)
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                c = f.read()
+            if issue_marker in c or issue_marker_alt in c:
+                target_file = fpath
+                target_codename = fname[:-3]
+                break
+        except Exception:
+            continue
+
+    if not target_file:
+        print(f"[INFO] Duplicate issue #{issue_number} was not found in any report files.")
+        gh_output = os.environ.get("GITHUB_OUTPUT")
+        if gh_output:
+            with open(gh_output, "a", encoding="utf-8") as f_out:
+                f_out.write("is_duplicate=true\n")
+        return
+
+    print(f"[INFO] Removing duplicate report #{issue_number} from {target_file}")
+    with open(target_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    table_lines = []
+    table_found = False
+    for line in content.splitlines():
+        if re.match(r"^\|\s*:?---", line):
+            table_found = True
+            continue
+        if table_found and line.strip().startswith("|"):
+            if "*no reports yet*" in line.lower():
+                continue
+            if issue_marker in line or issue_marker_alt in line:
+                continue
+            table_lines.append(line.strip())
+
+    total_reports = len(table_lines)
+    if total_reports == 0:
+        badge_emoji, result_cat = "❔", "Untested"
+        new_table_body = "| *No reports yet* | — | — | ❔ Untested | Waiting for community test report |\n"
+    else:
+        table_lines.sort(key=report_row_sort_key)
+        top_parts = [p.strip() for p in table_lines[0].split("|")]
+        badge_emoji, result_cat = determine_badge(top_parts[4])
+        new_table_body = "\n".join(table_lines) + "\n"
+
+    header_delim = "| :--- | :--- | :--- | :---: | :--- |\n"
+    if header_delim not in content:
+        header_delim = "| :--- | :---: | :--- | :--- | :---: | :--- |\n"
+
+    parts = content.split(header_delim, 1)
+
+    if len(parts) == 2:
+        header_part = re.sub(
+            r"- \*\*Current Overall Status:\*\* .*",
+            f"- **Current Overall Status:** {badge_emoji} **{result_cat}**",
+            parts[0],
+        )
+        header_part = re.sub(
+            r"- \*\*Total Community Reports:\*\* .*",
+            f"- **Total Community Reports:** {total_reports}",
+            header_part,
+        )
+        footer_parts = parts[1].split("\n---", 1)
+        content = header_part + header_delim + new_table_body + "\n---" + (footer_parts[1] if len(footer_parts) == 2 else "")
+    else:
+        content = re.sub(
+            r"- \*\*Current Overall Status:\*\* .*",
+            f"- **Current Overall Status:** {badge_emoji} **{result_cat}**",
+            content,
+        )
+        content = re.sub(
+            r"- \*\*Total Community Reports:\*\* .*",
+            f"- **Total Community Reports:** {total_reports}",
+            content,
+        )
+
+    with open(target_file, "w", encoding="utf-8") as f:
+        f.write(content)
+
+    m_name = re.search(r"- \*\*Marketing Name:\*\*\s*(.+)", content)
+    device_name = m_name.group(1).strip() if m_name else target_codename
+
+    update_compatibility_md(
+        device_name=device_name,
+        codename=target_codename,
+        custom_rom="—",
+        camera_gen="—",
+        badge_emoji=badge_emoji,
+        result_cat=result_cat,
+        compat_file=compat_file,
+        reports_dir=reports_dir,
+    )
+
+    gh_output = os.environ.get("GITHUB_OUTPUT")
+    if gh_output:
+        with open(gh_output, "a", encoding="utf-8") as f_out:
+            f_out.write("is_duplicate=true\n")
+            f_out.write(f"device_codename={target_codename}\n")
+    print(f"[SUCCESS] Cleaned up duplicate report #{issue_number} from {target_codename}.")
+
 def main():
     issue_body = os.environ.get("ISSUE_BODY", "")
     issue_number = os.environ.get("ISSUE_NUMBER", "")
     issue_author = os.environ.get("ISSUE_AUTHOR", "")
     issue_url = os.environ.get("ISSUE_URL", "")
+    issue_state_reason = os.environ.get("ISSUE_STATE_REASON", "").lower()
+    issue_labels = os.environ.get("ISSUE_LABELS", "").lower()
+
+    # Handle duplicate reports
+    if issue_state_reason == "duplicate" or "duplicate" in issue_labels:
+        print(f"[INFO] Issue #{issue_number} is closed/marked as duplicate. Processing duplicate removal.")
+        handle_duplicate_issue(issue_number)
+        return
 
     if not issue_body:
         print("[ERROR] ISSUE_BODY is empty. Exiting.")
@@ -405,11 +609,18 @@ def main():
                 table_lines.append(line.strip())
 
         table_lines.append(new_report_row)
+
+        # Primary sort: most successful first. Secondary sort: same success level -> most recent (newest issue #) first.
+        table_lines.sort(key=report_row_sort_key)
         total_reports = len(table_lines)
+
+        # The overall status is determined by the most successful report (the top row)
+        top_parts = [p.strip() for p in table_lines[0].split("|")]
+        overall_badge, overall_cat = determine_badge(top_parts[4])
 
         dev_content = re.sub(
             r"- \*\*Current Overall Status:\*\* .*",
-            f"- **Current Overall Status:** {badge_emoji} **{result_cat}**",
+            f"- **Current Overall Status:** {overall_badge} **{overall_cat}**",
             dev_content
         )
         dev_content = re.sub(
@@ -470,7 +681,8 @@ def main():
         header_delim = "| :--- | :--- | :--- | :---: | :--- |\n"
         parts = dev_content.split(header_delim, 1)
         if len(parts) != 2:
-            parts = dev_content.split("| :--- | :---: | :--- | :--- | :---: | :--- |\n", 1)
+            header_delim = "| :--- | :---: | :--- | :--- | :---: | :--- |\n"
+            parts = dev_content.split(header_delim, 1)
 
         if len(parts) == 2:
             footer_parts = parts[1].split("\n---", 1)
@@ -484,6 +696,7 @@ def main():
         print(f"[INFO] Creating new report page: {device_file}")
         total_reports = 1
         model_val = f"`{model}`" if model != "—" else "—"
+        overall_badge, overall_cat = badge_emoji, result_cat
 
         new_dev_content = f"""# Device Report: {device_name} (`{codename}`)
 
@@ -521,7 +734,7 @@ def main():
             f.write(new_dev_content)
 
     # --- 2. Update COMPATIBILITY.md & Issue Template Dropdown ---
-    update_compatibility_md(device_name, device_key, custom_rom, camera_gen, badge_emoji, result_cat)
+    update_compatibility_md(device_name, device_key, custom_rom, camera_gen, overall_badge, overall_cat)
     ensure_device_in_issue_template(device_name, device_key)
 
     # --- 3. Set GitHub Action Outputs ---
@@ -532,11 +745,12 @@ def main():
                 f_out.write(f"device_name={device_name}\n")
                 f_out.write(f"device_codename={codename}\n")
                 f_out.write(f"issue_title=[Compatibility]: {device_name} ({codename})\n")
-                f_out.write(f"result_cat={result_cat}\n")
-                f_out.write(f"badge_emoji={badge_emoji}\n")
-                f_out.write(f"is_working_perfectly={'true' if result_cat == 'Works Perfectly' else 'false'}\n")
+                f_out.write(f"result_cat={overall_cat}\n")
+                f_out.write(f"badge_emoji={overall_badge}\n")
+                f_out.write(f"is_working_perfectly={'true' if overall_cat == 'Works Perfectly' else 'false'}\n")
+                f_out.write("is_duplicate=false\n")
             print(f"[INFO] Exported issue_title='[Compatibility]: {device_name} ({codename})' to GITHUB_OUTPUT.")
-            print(f"[INFO] Exported result_cat='{result_cat}', is_working_perfectly={'true' if result_cat == 'Works Perfectly' else 'false'} to GITHUB_OUTPUT.")
+            print(f"[INFO] Exported result_cat='{overall_cat}', is_working_perfectly={'true' if overall_cat == 'Works Perfectly' else 'false'} to GITHUB_OUTPUT.")
         except Exception as e:
             print(f"[WARN] Failed to write to GITHUB_OUTPUT: {e}")
 

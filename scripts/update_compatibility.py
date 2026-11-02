@@ -97,8 +97,30 @@ def parse_lineage_devices(devices_dir):
 
     return devices
 
-def get_device_status(codename, reports_dir="reports"):
+STATUS_RANK = {
+    "works perfectly": 1,
+    "mostly working": 2,
+    "app crashes": 3,
+    "app missing": 4,
+    "won't boot": 5,
+    "wont boot": 5,
+    "won't compile": 6,
+    "wont compile": 6,
+    "compile fail": 6,
+    "untested": 7,
+}
+
+def get_status_rank(status_text: str) -> int:
+    text = status_text.lower()
+    for key, rank in STATUS_RANK.items():
+        if key in text:
+            return rank
+    return 99
+
+def get_device_status_and_issue(codename, reports_dir="reports"):
     report_file = os.path.join(reports_dir, f"{codename}.md")
+    status = "❔ Untested"
+    latest_issue = 0
     if os.path.exists(report_file):
         try:
             with open(report_file, 'r', encoding='utf-8') as f:
@@ -106,11 +128,18 @@ def get_device_status(codename, reports_dir="reports"):
             m = re.search(r"-\s+\*\*Current Overall Status:\*\*\s*(.+)", content)
             if m:
                 raw_status = m.group(1).strip()
-                clean_status = raw_status.replace("**", "").strip()
-                return clean_status
+                status = raw_status.replace("**", "").strip()
+            issues = [int(x) for x in re.findall(r"\[#(\d+)\]", content)]
+            if issues:
+                latest_issue = max(issues)
         except Exception:
             pass
-    return "❔ Untested"
+    rank = get_status_rank(status)
+    return status, rank, latest_issue
+
+def get_device_status(codename, reports_dir="reports"):
+    status, _, _ = get_device_status_and_issue(codename, reports_dir)
+    return status
 
 def ensure_device_report_files(devices, reports_dir="reports"):
     os.makedirs(reports_dir, exist_ok=True)
@@ -201,8 +230,7 @@ def parse_community_devices(lineage_devices, reports_dir="reports"):
         m_era = re.search(r"-\s+\*\*Stock Camera Era:\*\*\s*(.+)", content)
         native_cam = m_era.group(1).strip() if m_era else "—"
 
-        m_status = re.search(r"-\s+\*\*Current Overall Status:\*\*\s*(.+)", content)
-        status = m_status.group(1).replace("**", "").strip() if m_status else "❔ Untested"
+        status, status_rank, latest_issue = get_device_status_and_issue(codename, reports_dir)
 
         # Extract latest reported Custom ROM from the Community Test Reports table
         latest_rom = "Unofficial / Custom ROM"
@@ -236,18 +264,32 @@ def parse_community_devices(lineage_devices, reports_dir="reports"):
                     'rom': latest_rom,
                     'native_cam': native_cam,
                     'status': status,
+                    'status_rank': status_rank,
+                    'latest_issue': latest_issue,
                 })
 
-    community_devices.sort(key=lambda x: x['name'].lower())
+    community_devices.sort(key=lambda x: (x.get('status_rank', 99), -x.get('latest_issue', 0), x['name'].lower()))
     return community_devices
 
 def generate_markdown(devices, community_devices, output_file, reports_dir="reports"):
+    for d in devices:
+        status, rank, issue = get_device_status_and_issue(d['codename'], reports_dir)
+        d['status'] = status
+        d['status_rank'] = rank
+        d['latest_issue'] = issue
+
+    for cd in community_devices:
+        status, rank, issue = get_device_status_and_issue(cd['codename'], reports_dir)
+        cd['status'] = status
+        cd['status_rank'] = rank
+        cd['latest_issue'] = issue
+
     active_devices = [d for d in devices if d['is_active']]
     legacy_devices = [d for d in devices if not d['is_active']]
 
-    active_devices.sort(key=lambda x: x['name'].lower())
-    legacy_devices.sort(key=lambda x: x['name'].lower())
-    community_devices.sort(key=lambda x: x['name'].lower())
+    active_devices.sort(key=lambda x: (x['status_rank'], -x['latest_issue'], x['name'].lower()))
+    legacy_devices.sort(key=lambda x: (x['status_rank'], -x['latest_issue'], x['name'].lower()))
+    community_devices.sort(key=lambda x: (x['status_rank'], -x['latest_issue'], x['name'].lower()))
 
     total_tracked = len(devices) + len(community_devices)
     now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
@@ -294,8 +336,7 @@ Devices listed here have active LineageOS maintainers and up-to-date trees. Sinc
 """
 
     for d in active_devices:
-        status = get_device_status(d['codename'], reports_dir)
-        content += f"| [**{d['name']}**](reports/{d['codename']}.md) | `{d['codename']}` | {d['branch']} | {d['native_cam']} | {status} |\n"
+        content += f"| [**{d['name']}**](reports/{d['codename']}.md) | `{d['codename']}` | {d['branch']} | {d['native_cam']} | {d['status']} |\n"
 
     content += f"""
 ---
@@ -329,8 +370,7 @@ These devices previously received official LineageOS builds but are no longer ac
 """
 
     for d in legacy_devices:
-        status = get_device_status(d['codename'], reports_dir)
-        content += f"| [{d['name']}](reports/{d['codename']}.md) | `{d['codename']}` | {d['branch']} | {d['native_cam']} | {status} |\n"
+        content += f"| [{d['name']}](reports/{d['codename']}.md) | `{d['codename']}` | {d['branch']} | {d['native_cam']} | {d['status']} |\n"
 
     content += """
 </details>
