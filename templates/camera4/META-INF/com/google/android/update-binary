@@ -336,7 +336,9 @@ if [ -n "$PROP_FILE" ] && [ -f "$PROP_FILE" ]; then
       clean_key=$(echo "$key" | tr -d ' \r\t')
       clean_val=$(echo "$val" | tr -d '\r')
       if [ -n "$clean_key" ] && [ -n "$clean_val" ]; then
-        if ! grep -q "^${clean_key}=" "$PROP_FILE" 2>/dev/null; then
+        if grep -q "^${clean_key}=" "$PROP_FILE" 2>/dev/null; then
+          sed -i "s|^${clean_key}=.*|${clean_key}=${clean_val}|" "$PROP_FILE"
+        else
           echo "${clean_key}=${clean_val}" >> "$PROP_FILE"
         fi
       fi

@@ -191,13 +191,33 @@ extract_firmware() {
     return 0
   fi
 
+  # Case A2: If input is a directory containing a single firmware archive, resolve it
+  if [ -d "$src" ]; then
+    local inside_zips=()
+    while IFS= read -r -d $'\0' z; do
+      [ -n "$z" ] && inside_zips+=("$z")
+    done < <(find "$src" -maxdepth 1 -type f \( -name "*.zip" -o -name "*.tar.gz" -o -name "*.tgz" \) -print0 2>/dev/null)
+    if [ ${#inside_zips[@]} -eq 1 ] && [ ! -f "${src}/super.img" ]; then
+      local sparse_chk
+      sparse_chk=$(find "$src" -maxdepth 1 -name "super.img_sparsechunk.*" 2>/dev/null | head -n1 || true)
+      if [ -z "$sparse_chk" ]; then
+        log_info "Found firmware archive in directory: ${inside_zips[0]##*/}"
+        src="${inside_zips[0]}"
+      fi
+    fi
+  fi
+
   # Case B: If input is an archive, extract it first
   if [ -f "$src" ] && [[ "$src" =~ \.(zip|tar\.gz|tgz)$ ]]; then
     log_info "Unpacking firmware archive..."
     local unzipped_dir="${work_dir}/unpacked_zip"
     mkdir -p "$unzipped_dir"
     if [[ "$src" =~ \.zip$ ]]; then
-      unzip -q "$src" -d "$unzipped_dir"
+      if command -v 7z &>/dev/null; then
+        7z x -y -bso0 -bsp0 "$src" -o"$unzipped_dir"
+      else
+        unzip -q "$src" -d "$unzipped_dir"
+      fi
     else
       tar -xzf "$src" -C "$unzipped_dir"
     fi
@@ -917,10 +937,24 @@ EOF
           ro.vendor.camera.aux.*|\
           ro.camera.cfa.*|\
           camera.disable_zsl_mode|\
-          ro.camera.enableCamera1MaxZsl)
+          ro.camera.enableCamera1MaxZsl|\
+          media.settings.xml)
             clean_key=$(echo "$key" | tr -d ' \r\t')
             clean_val=$(echo "$val" | tr -d '\r')
             if [ -n "$clean_key" ] && [[ ! " ${harvested_keys[*]} " =~ " ${clean_key} " ]]; then
+              if [ "$clean_key" = "media.settings.xml" ]; then
+                clean_val=$(echo "$clean_val" | sed 's|^/vendor/|/product/|')
+              fi
+              if [ "$clean_key" = "persist.vendor.camera.privapp.list" ]; then
+                if [[ ! "$clean_val" =~ "com.motorola.camera3" ]]; then
+                  clean_val="${clean_val},com.motorola.camera3"
+                fi
+              fi
+              if [ "$clean_key" = "vendor.camera.aux.packagelist" ]; then
+                if [[ ! "$clean_val" =~ "com.motorola.camera3" ]]; then
+                  clean_val="${clean_val},com.motorola.camera3"
+                fi
+              fi
               echo "${clean_key}=${clean_val}" >> "$output_prop"
               harvested_keys+=("$clean_key")
             fi
@@ -930,9 +964,20 @@ EOF
     fi
   done
 
+  # Guarantee media.settings.xml points to product media profiles for video stability
+  if [[ ! " ${harvested_keys[*]} " =~ " media.settings.xml " ]]; then
+    echo "media.settings.xml=/product/etc/media_profiles_vendor.xml" >> "$output_prop"
+    harvested_keys+=("media.settings.xml")
+  fi
+
   # Guarantee baseline aux camera unlock if not found
   if [[ ! " ${harvested_keys[*]} " =~ " persist.vendor.camera.expose.aux " ]]; then
     echo "persist.vendor.camera.expose.aux=1" >> "$output_prop"
+  fi
+
+  # Guarantee Motorola Camera privapp and aux access
+  if [[ ! " ${harvested_keys[*]} " =~ " persist.vendor.camera.privapp.list " ]]; then
+    echo "persist.vendor.camera.privapp.list=org.codeaurora.snapcam,com.motorola.camera3" >> "$output_prop"
   fi
 
   log_ok "Harvested ${#harvested_keys[@]} device camera properties."
@@ -1136,6 +1181,112 @@ if os.path.isdir(se_etc):
 PY
 }
 
+harvest_and_enhance_media_profiles() {
+  local src_root="$1"
+  local staging_dir="$2"
+
+  log_info "  - Harvesting and enhancing device media profiles for camcorder & slow-mo..."
+  local target_etc="${staging_dir}/system/product/etc"
+  mkdir -p "$target_etc"
+
+  local found_profiles=0
+  for search_part in vendor product system; do
+    if [ -d "${src_root}/${search_part}/etc" ]; then
+      while IFS= read -r -d $'\0' xml_file; do
+        [ -f "$xml_file" ] || continue
+        cp -f "$xml_file" "$target_etc/"
+        found_profiles=1
+      done < <(find "${src_root}/${search_part}/etc" -maxdepth 1 -type f -name "media_profiles*.xml" -print0 2>/dev/null)
+    fi
+  done
+
+  if [ "$found_profiles" -eq 1 ] && command -v python3 &>/dev/null; then
+    python3 - "$target_etc" <<'PY'
+import os, sys, shutil, xml.etree.ElementTree as ET
+
+target_dir = sys.argv[1]
+vendor_xml_path = os.path.join(target_dir, "media_profiles_vendor.xml")
+highspeed_by_cam = {}
+
+for fname in sorted(os.listdir(target_dir)):
+    if not (fname.startswith("media_profiles") and fname.endswith(".xml")):
+        continue
+    fpath = os.path.join(target_dir, fname)
+    try:
+        tree = ET.parse(fpath)
+        for cam in tree.findall("CamcorderProfiles"):
+            cid = cam.attrib.get("cameraId", "0")
+            hs = [p for p in cam.findall("EncoderProfile") if p.attrib.get("quality", "").startswith("highspeed")]
+            if hs and cid not in highspeed_by_cam:
+                highspeed_by_cam[cid] = hs
+    except Exception:
+        pass
+
+all_cams = {}
+for fname in sorted(os.listdir(target_dir)):
+    if not (fname.startswith("media_profiles") and fname.endswith(".xml")):
+        continue
+    fpath = os.path.join(target_dir, fname)
+    try:
+        tree = ET.parse(fpath)
+        for cam in tree.findall("CamcorderProfiles"):
+            cid = cam.attrib.get("cameraId")
+            if cid and cid not in all_cams:
+                all_cams[cid] = cam
+    except Exception:
+        pass
+
+for fname in sorted(os.listdir(target_dir)):
+    if not (fname.startswith("media_profiles") and fname.endswith(".xml")):
+        continue
+    fpath = os.path.join(target_dir, fname)
+    try:
+        tree = ET.parse(fpath)
+        root = tree.getroot()
+        modified = False
+        existing_cams = {c.attrib.get("cameraId"): c for c in root.findall("CamcorderProfiles")}
+
+        for cid, cam in existing_cams.items():
+            has_hs = any(p.attrib.get("quality", "").startswith("highspeed") for p in cam.findall("EncoderProfile"))
+            if not has_hs:
+                source_hs = highspeed_by_cam.get(cid) or highspeed_by_cam.get("0")
+                if source_hs:
+                    for p in source_hs:
+                        cam.append(ET.fromstring(ET.tostring(p, encoding="utf-8")))
+                    modified = True
+
+        for cid, source_cam in sorted(all_cams.items()):
+            if cid not in existing_cams:
+                new_cam = ET.fromstring(ET.tostring(source_cam, encoding="utf-8"))
+                has_hs = any(p.attrib.get("quality", "").startswith("highspeed") for p in new_cam.findall("EncoderProfile"))
+                if not has_hs:
+                    source_hs = highspeed_by_cam.get(cid) or highspeed_by_cam.get("0")
+                    if source_hs:
+                        for p in source_hs:
+                            new_cam.append(ET.fromstring(ET.tostring(p, encoding="utf-8")))
+                last_idx = 0
+                for idx, child in enumerate(list(root)):
+                    if child.tag == "CamcorderProfiles":
+                        last_idx = idx + 1
+                root.insert(last_idx, new_cam)
+                existing_cams[cid] = new_cam
+                modified = True
+
+        if modified:
+            ET.indent(tree, space="    ")
+            tree.write(fpath, encoding="utf-8", xml_declaration=True)
+    except Exception:
+        pass
+
+if not os.path.exists(vendor_xml_path):
+    cands = [f for f in sorted(os.listdir(target_dir)) if f.startswith("media_profiles") and f.endswith(".xml")]
+    if cands:
+        shutil.copy2(os.path.join(target_dir, cands[0]), vendor_xml_path)
+PY
+    log_ok "Media profiles enhanced with all camera profiles and high-speed / slow-motion capabilities."
+  fi
+}
+
 harvest_blobs() {
   local src_root="$1"
   local staging_dir="$2"
@@ -1155,6 +1306,7 @@ harvest_blobs() {
   mkdir -p "${staging_dir}/system/product/priv-app"
   mkdir -p "${staging_dir}/system/product/app"
   mkdir -p "${staging_dir}/system/product/etc/permissions"
+  mkdir -p "${staging_dir}/system/product/etc/default-permissions"
   mkdir -p "${staging_dir}/system/product/etc/sysconfig"
   mkdir -p "${staging_dir}/system/product/etc/init"
   mkdir -p "${staging_dir}/system/product/etc/MotoDesktopAppConfig"
@@ -1178,13 +1330,36 @@ harvest_blobs() {
     log_ok "Harvested AI Scene Engine: ${ai_folder_name}"
   fi
 
-  # Camera-only permissions, sysconfigs, init, and desktop app config
+  # Camera-only permissions, default-permissions, sysconfigs, init, and desktop app config
   cp -f "${src_root}/product/etc/permissions/"*com.motorola.camera* "${staging_dir}/system/product/etc/permissions/" 2>/dev/null || true
+  cp -f "${src_root}/product/etc/default-permissions/"*camera* "${staging_dir}/system/product/etc/default-permissions/" 2>/dev/null || true
   cp -f "${src_root}/product/etc/sysconfig/"*com.motorola.camera* "${staging_dir}/system/product/etc/sysconfig/" 2>/dev/null || true
   cp -f "${src_root}/product/etc/init/"*motcamera* "${staging_dir}/system/product/etc/init/" 2>/dev/null || true
   if [ -d "${src_root}/product/etc/MotoDesktopAppConfig" ]; then
     cp -f "${src_root}/product/etc/MotoDesktopAppConfig/"*camera* "${staging_dir}/system/product/etc/MotoDesktopAppConfig/" 2>/dev/null || true
   fi
+
+  # Pre-grant essential runtime permissions for camera, audio, location, and storage
+  cat <<'EOF' > "${staging_dir}/system/product/etc/default-permissions/default-permissions-com.motorola.camera3.xml"
+<?xml version="1.0" encoding="utf-8"?>
+<exceptions>
+    <exception package="com.motorola.camera3">
+        <permission name="android.permission.CAMERA" fixed="false"/>
+        <permission name="android.permission.RECORD_AUDIO" fixed="false"/>
+        <permission name="android.permission.ACCESS_FINE_LOCATION" fixed="false"/>
+        <permission name="android.permission.ACCESS_COARSE_LOCATION" fixed="false"/>
+        <permission name="android.permission.READ_MEDIA_IMAGES" fixed="false"/>
+        <permission name="android.permission.READ_MEDIA_VIDEO" fixed="false"/>
+        <permission name="android.permission.READ_MEDIA_AUDIO" fixed="false"/>
+        <permission name="android.permission.READ_EXTERNAL_STORAGE" fixed="false"/>
+        <permission name="android.permission.WRITE_EXTERNAL_STORAGE" fixed="false"/>
+        <permission name="android.permission.POST_NOTIFICATIONS" fixed="false"/>
+    </exception>
+</exceptions>
+EOF
+
+  # Harvest and enhance media profiles for normal video and high-speed slow motion
+  harvest_and_enhance_media_profiles "$src_root" "$staging_dir"
 
   # Shutter/focus sounds if present
   if [ -d "${src_root}/product/media/audio/ui" ]; then
