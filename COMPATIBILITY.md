@@ -1,8 +1,8 @@
 # Per-Device Compatibility Table
 
 > **Automatic Sync:** This table is automatically generated and synchronized with the official [LineageOS Wiki](https://github.com/LineageOS/lineage_wiki) repository via GitHub Actions.  
-> **Last Updated:** `2026-11-02 04:49:03 UTC`  
-> **Total Motorola Devices Tracked:** `97` (`61` actively maintained, `0` community / unofficial, `36` discontinued)
+> **Last Updated:** `2026-11-09 04:59:18 UTC`  
+> **Total Motorola Devices Tracked:** `98` (`62` actively maintained, `0` community / unofficial, `36` discontinued)
 
 ---
 
@@ -31,7 +31,7 @@ Every tested device outcome is classified into one of the following categories:
 
 ---
 
-## 📱 Actively Maintained Motorola Devices (61)
+## 📱 Actively Maintained Motorola Devices (62)
 
 Devices listed here have active LineageOS maintainers and up-to-date trees. Since downstream custom ROMs (such as **crDroid**, **PixelOS**, **Evolution X**, and **DerpFest**) inherit LineageOS trees and HALs, these devices represent prime targets for **Moto Camera Restored**.
 
@@ -49,6 +49,7 @@ Devices listed here have active LineageOS maintainers and up-to-date trees. Sinc
 | [**edge 30 fusion**](reports/tundra.md) | `tundra` | 24.0 | Moto Camera 4 | ❔ Untested |
 | [**edge 30 neo**](reports/miami.md) | `miami` | 24.0 | Moto Camera 4 | ❔ Untested |
 | [**edge 30 ultra**](reports/eqs.md) | `eqs` | 23.2 | Moto Camera 4 | ❔ Untested |
+| [**edge 40**](reports/lyriq.md) | `lyriq` | 24.0 | Moto Camera 4 | ❔ Untested |
 | [**edge 40 pro**](reports/rtwo.md) | `rtwo` | 24.0 | Moto Camera 4 | ❔ Untested |
 | [**edge s**](reports/nio.md) | `nio` | 24.0 | Moto Camera 3 | ❔ Untested |
 | [**Edge S30**](reports/xpeng.md) | `xpeng` | 24.0 | Moto Camera 3 | ❔ Untested |
